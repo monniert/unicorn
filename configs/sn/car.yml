@@ -1,0 +1,54 @@
+dataset:
+  name: shapenet_nmr
+  categories: [car]
+model:
+  name: unicorn
+  mesh:
+    init: ellipse
+    scale: 0.4
+    use_mean_text: True
+    deform_fields:
+      powers: [2, 8, 32]
+      milestones: [12, 63, 114]
+    texture_uv:
+      img_size: 64
+      powers: [2, 8, 32, 128]
+      milestones: [0, 12, 63, 114]
+  renderer:
+    cameras:
+      name: perspective
+      focal_length: 3.732050895690918
+    faces_per_pixel: 50
+  rend_predictor:
+    alternate_optim: True
+    azim_range: [0, 360]
+    elev_range: [30, 30]
+    roll_range: [0, 0]
+    T_range: [0.2, 0.2, 0]
+    scale_range: [0.5, 0.5, 0.5]
+  milestones:
+    freeze_scale_predictor: 2
+    constant_text: 12
+  loss:
+    name: mse
+    rgb_weight: 1
+    perceptual_weight: 10
+    laplacian_weight: 0.01
+    normal_weight: 0.01
+    uniform_weight: 0.02
+    swap_weight: 1
+    swap_memsize: 1024
+    swap_n_vpbins: 4
+training:
+  batch_size: 32
+  n_workers: 4
+  optimizer:
+    name: adam
+    lr: 1.0e-4
+  n_epoches: 165
+  save_epoches: [12, 63, 114]
+  train_stat_interval: 2000
+  val_stat_interval: 4000
+  seed: 48095
+  visualizer_port:
+  resume: 
