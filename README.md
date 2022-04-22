@@ -2,8 +2,7 @@
 
 <h3>
 <a class="label label-info" href="http://imagine.enpc.fr/~monniert/UNICORN/">Webpage</a> |
-<a href="https://arxiv.org/abs/todo">Paper</a> |
-<a href="https://arxiv.org/abs/todo">Supplementary</a> |
+<a href="https://arxiv.org/abs/2204.10310">Paper</a> |
 <a href="http://imagine.enpc.fr/~monniert/UNICORN/ref.bib">BibTex</a>
 </h3>
 
@@ -11,8 +10,8 @@
 ![bird.gif](./media/bird.gif)
 ![moto.gif](./media/moto.gif)
 
-Official PyTorch implementation of [**"Share With Thy Neighbors: Single-View Reconstruction 
-by Cross-Instance Consistency"**](https://arxiv.org/abs/todo) paper, check out our 
+PyTorch implementation of [**"Share With Thy Neighbors: Single-View Reconstruction 
+by Cross-Instance Consistency"**](https://arxiv.org/abs/2204.10310) paper, check out our 
 [**webpage**](https://imagine.enpc.fr/~monniert/UNICORN) for details!
 
 If you find this code useful, don't forget to star the repo :star: and cite the paper:
@@ -22,7 +21,7 @@ If you find this code useful, don't forget to star the repo :star: and cite the 
   title={{Share With Thy Neighbors: Single-View Reconstruction by Cross-Instance 
   Consistency}},
   author={Monnier, Tom and Fisher, Matthew and Efros, Alexei A and Aubry, Mathieu},
-  journal={arXiv:todo},
+  journal={arXiv:2204.10310 [cs]},
   year={2022},
 }
 ```
