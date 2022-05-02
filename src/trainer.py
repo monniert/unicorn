@@ -123,6 +123,8 @@ class Trainer:
                         self.log_val_metrics(cur_iter, epoch, batch)
                     self.log_visualizations(cur_iter)
                     self.save(epoch=epoch, batch=batch)
+                elif epoch in self.save_epoches:
+                    self.save(epoch=epoch, batch=batch)
                 cur_iter += 1
             self.step(epoch + 1, batch=1)
 

@@ -106,7 +106,7 @@ This command will download one of the following models:
   [table](https://drive.google.com/file/d/1MwGZpFaadA-3fA1WpXKmX-v7btXcuZJ7/view?usp=sharing),
   [vessel](https://drive.google.com/file/d/1-2Jwek4GmYDciRNu2K6zsMlyW7c3krBl/view?usp=sharing)
 
-**NB:** it may happen that `gdown` hangs, if so you can download them manually with following 
+**NB:** it may happen that `gdown` hangs, if so you can download them manually with the 
 gdrive links and move them to the `models` folder.
 
 
