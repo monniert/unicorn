@@ -26,6 +26,6 @@ _cache*
 /jeanzay
 /notebook
 /models
-/models_old
+/models_old_fmt
 /runs
 /visdom

@@ -6,7 +6,7 @@ model:
   mesh:
     init: ellipse
     scale: 0.4
-    use_mean_text: True
+    use_mean_txt: True
     deform_fields:
       powers: [2, 8, 32]
       milestones: [60, 303, 545]
@@ -28,7 +28,7 @@ model:
     scale_range: [0.5, 0.5, 0.5]
   milestones:
     freeze_scale_predictor: 12
-    constant_text: 60
+    constant_txt: 60
   loss:
     name: mse
     rgb_weight: 1

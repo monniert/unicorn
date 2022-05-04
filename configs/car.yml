@@ -6,7 +6,7 @@ model:
   mesh:
     init: ellipse
     scale: 0.6
-    use_mean_text: True
+    use_mean_txt: True
     deform_fields:
       powers: [2, 8, 32]
       milestones: [150, 300, 450]

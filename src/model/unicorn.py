@@ -80,7 +80,7 @@ class Unicorn(nn.Module):
         self.mesh_src = mesh.scale_verts(scale)
         self.register_buffer('uvs', convert_3d_to_uv_coordinates(self.mesh_src.get_mesh_verts_faces(0)[0])[None])
 
-        self.use_mean_text = kwargs.pop('use_mean_text', False)
+        self.use_mean_txt = kwargs.pop('use_mean_txt', kwargs.pop('use_mean_text', False))  # retro-compatibility
         dfield_kwargs = kwargs.pop('deform_fields', {})
         tgen_kwargs = kwargs.pop('texture_uv', {})
         assert len(kwargs) == 0
@@ -147,12 +147,12 @@ class Unicorn(nn.Module):
     def _init_milestones(self, **kwargs):
         kwargs = deepcopy(kwargs)
         self.milestones = {
-            'constant_text': kwargs.pop('constant_text', 0),
+            'constant_txt': kwargs.pop('constant_txt', kwargs.pop('constant_text', 0)),  # retro-compatibility
             'freeze_T_pred': kwargs.pop('freeze_T_predictor', 0),
             'freeze_R_pred': kwargs.pop('freeze_R_predictor', 0),
             'freeze_s_pred': kwargs.pop('freeze_scale_predictor', 0),
             'freeze_shape': kwargs.pop('freeze_shape', 0),
-            'mean_text': kwargs.pop('mean_text', self.use_mean_text),
+            'mean_txt': kwargs.pop('mean_txt', kwargs.pop('mean_text', self.use_mean_txt)),  # retro-compatibility
         }
         assert len(kwargs) == 0
 
@@ -253,12 +253,12 @@ class Unicorn(nn.Module):
         B = len(features)
         perturbed = self.training and np.random.binomial(1, p=0.2)
         maps = self.txt_generator(features)
-        if self.is_live('constant_text'):
+        if self.is_live('constant_txt'):
             H, W = maps.shape[-2:]
             nb = int(H * W * 0.1)
             idxh, idxw = torch.randperm(H)[:nb], torch.randperm(W)[:nb]
             maps = maps[:, :, idxh, idxw].mean(2)[..., None, None].expand(-1, -1, H, W)
-        elif self.training and perturbed and self.use_mean_text and self.is_live('mean_text'):
+        elif self.training and perturbed and self.use_mean_txt and self.is_live('mean_txt'):
             H, W = maps.shape[-2:]
             nb = int(H * W * 0.1)
             idxh, idxw = torch.randperm(H)[:nb], torch.randperm(W)[:nb]
@@ -551,7 +551,7 @@ class Unicorn(nn.Module):
                 if self.pred_background:
                     convert_to_img(bkgs[k]).save(path / f'{i}_inprec_wbkg.png')
 
-                mcenter = normalize(meshes[k], mode=None, center=True)
+                mcenter = normalize(meshes[k], mode=None, center=True, use_center_mass=True)
                 save_mesh_as_gif(mcenter, path / f'{i}_meshabs.gif', n_views=NV, dist=d, elev=e, renderer=renderer)
                 save_mesh_as_obj(mcenter, path / f'{i}_mesh.obj')
                 mcenter.textures = self.get_synthetic_textures(colored=True)
