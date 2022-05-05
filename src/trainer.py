@@ -123,10 +123,10 @@ class Trainer:
                         self.log_val_metrics(cur_iter, epoch, batch)
                     self.log_visualizations(cur_iter)
                     self.save(epoch=epoch, batch=batch)
-                elif epoch in self.save_epoches:
-                    self.save(epoch=epoch, batch=batch)
                 cur_iter += 1
             self.step(epoch + 1, batch=1)
+            if epoch in self.save_epoches:
+                self.save(epoch=epoch, batch=batch, checkpoint=True)
 
         if self.is_master:
             N, B = (self.n_epoches, self.n_batches) if self.with_training else (self.epoch_start, self.batch_start)
@@ -216,13 +216,13 @@ class Trainer:
         if images is not None:
             self.visualizer.upload_images(images, 'prototype views')
 
-    def save(self, epoch, batch):
+    def save(self, epoch, batch, checkpoint=False):
         state = {
             "epoch": epoch, "batch": batch, "model_name": self.model.name, "model_kwargs": self.model.init_kwargs,
             "model_state": self.model.state_dict(), "optimizer_state": self.optimizer.state_dict(),
             "scheduler_state": self.scheduler.state_dict(),
         }
-        name = f'model_{epoch}.pkl' if epoch in self.save_epoches else 'model.pkl'
+        name = f'model_{epoch}.pkl' if checkpoint else 'model.pkl'
         torch.save(state, self.run_dir / name)
         print_log(f"Model saved at {self.run_dir / name}")
 

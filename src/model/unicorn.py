@@ -313,6 +313,7 @@ class Unicorn(nn.Module):
         if K > 1:
             imgs = imgs.repeat(K, 1, 1, 1)
         losses = {k: torch.tensor(0.0, device=imgs.device) for k in self.loss_weights}
+        update_3d, update_pose = (not self.pose_step, self.pose_step) if self.alternate_optim else (True, True)
 
         # Standard reconstrution error on RGB values
         if 'rgb' in losses:
@@ -323,82 +324,76 @@ class Unicorn(nn.Module):
             losses['perceptual'] = self.loss_weights['perceptual'] * self.perceptual_loss(rec, imgs)
 
         # Mesh regularization
-        if self.training and not (self.alternate_optim and self.pose_step):
+        if update_3d:
             if 'normal' in losses:
                 losses['normal'] = self.loss_weights['normal'] * normal_consistency(meshes)
             if 'laplacian' in losses:
                 losses['laplacian'] = self.loss_weights['laplacian'] * laplacian_smoothing(meshes, method='uniform')
 
         # Swap loss
-        if self.training and not (self.alternate_optim and self.pose_step):
-            # XXX when latent spaces are small, codes are similar so there is no need to compute the swap loss
-            swap_tx, swap_sh = self.tx_code_size > 0, self.sh_code_size > 0
-            if 'swap' in losses and (swap_tx and swap_sh):
-                B, dev = len(meshes), imgs.device
-                verts, faces, textures = meshes.verts_padded(), meshes.faces_padded(), meshes.textures
-                scales = self._scales[:, None]
-                z_sh, z_tx = [m._latent for m in [self.deform_field, self.txt_generator]]
-                z_bg = self.bkg_generator._latent if self.pred_background else torch.empty(B, 1, device=dev)
+        # XXX when latent spaces are small, codes are similar so there is no need to compute the swap loss
+        if update_3d and 'swap' in losses and (self.tx_code_size > 0 and self.sh_code_size > 0):
+            B, dev = len(meshes), imgs.device
+            verts, faces, textures = meshes.verts_padded(), meshes.faces_padded(), meshes.textures
+            scales = self._scales[:, None]
+            z_sh, z_tx = [m._latent for m in [self.deform_field, self.txt_generator]]
+            z_bg = self.bkg_generator._latent if self.pred_background else torch.empty(B, 1, device=dev)
+            for n, t in [('sh', z_sh), ('tx', z_tx), ('bg', z_bg), ('S', scales), ('R', R), ('T', T), ('img', imgs)]:
+                self.swap_memory[n] = torch.cat([self.swap_memory[n].to(dev), t.detach()])[-self.swap_memsize:]
 
-                add_to, size = [('sh', z_sh), ('tx', z_tx)], self.swap_memsize
-                add_to += [('bg', z_bg), ('S', scales), ('R', R), ('T', T), ('img', imgs)]
-                for n, t in add_to:
-                    self.swap_memory[n] = torch.cat([self.swap_memory[n].to(dev), t.detach()])[-size:]
+            # we compute the nearest neighbors within a random target viewpoint range
+            min_angle, nb_vpbins = self.swap_min_angle, self.swap_n_vpbins
+            with torch.no_grad():
+                sim_sh = (z_sh[None] - self.swap_memory['sh'][:, None]).pow(2).sum(-1)
+                sim_tx = (z_tx[None] - self.swap_memory['tx'][:, None]).pow(2).sum(-1)
+                angles = cpu_angle_between(self.swap_memory['R'][:, None], R[None]).view(sim_sh.shape)
+                angle_bins = torch.randint(0, nb_vpbins, (B,), device=dev).float()
+                bin_size = (180. - min_angle) / nb_vpbins
+                min_angles, max_angles = [(angle_bins + k) * bin_size + min_angle for k in range(2)]
+                mask = (angles < min_angles).float() + (angles > max_angles).float()
+                idx_sh, idx_tx = map(lambda t: (t + t.max() * mask).argmin(0), [sim_sh, sim_tx])
 
-                zb_sh, zb_tx = self.swap_memory['sh'], self.swap_memory['tx']
-                with torch.no_grad():
-                    sim_sh, sim_tx = map(lambda t: (t[0][None] - t[1][:, None]).pow(2).sum(-1),
-                                         [(z_sh, zb_sh), (z_tx, zb_tx)])
-                    min_angle, nb_vpbins = self.swap_min_angle, self.swap_n_vpbins
-                    angles = cpu_angle_between(self.swap_memory['R'][:, None], R[None]).view(sim_sh.shape)
-                    angle_bins = torch.randint(0, nb_vpbins, (B,), device=dev).float()
-                    bin_size = (180. - min_angle) / nb_vpbins
-                    min_angles, max_angles = [(angle_bins + k) * bin_size + min_angle for k in range(2)]
-                    mask = (angles < min_angles).float() + (angles > max_angles).float()
-                    idx_sh, idx_tx = map(lambda t: (t + t.max() * mask).argmin(0), [sim_sh, sim_tx])
+            v_src, f_src = self.mesh_src.get_mesh_verts_faces(0)
+            swap_list, select = [], lambda n, indices: self.swap_memory[n][indices]
+            sh_imgs, tx_imgs = select('img', idx_sh), select('img', idx_tx)
 
-                v_src, f_src = self.mesh_src.get_mesh_verts_faces(0)
-                swap_list, select = [], lambda n, indices: self.swap_memory[n][indices]
-                sh_imgs, tx_imgs = select('img', idx_sh), select('img', idx_tx)
+            # Swapped shapes
+            with torch.no_grad():
+                # we recompute parameters with the current network state
+                sh_features = self.encoder(sh_imgs)
+                sh_tx = self.predict_textures(f_src, sh_features)
+                sh_S = self.predict_scales(sh_features)[:, None]
+                sh_R, sh_T = self.predict_poses(sh_features)
+                sh_bg = self.predict_background(sh_features) if self.pred_background else None
+            sh_mesh = Meshes((verts / scales) * sh_S, faces, sh_tx)
+            swap_list.append([sh_mesh, sh_R, sh_T, sh_bg, sh_imgs])
 
-                # Swapped shapes
-                with torch.no_grad():
-                    # we recompute parameters with the current network state
-                    sh_features = self.encoder(sh_imgs)
-                    sh_tx = self.predict_textures(f_src, sh_features)
-                    sh_S = self.predict_scales(sh_features)[:, None]
-                    sh_R, sh_T = self.predict_poses(sh_features)
-                    sh_bg = self.predict_background(sh_features) if self.pred_background else None
-                sh_mesh = Meshes((verts / scales) * sh_S, faces, sh_tx)
-                swap_list.append([sh_mesh, sh_R, sh_T, sh_bg, sh_imgs])
+            # Swapped textures
+            with torch.no_grad():
+                # we recompute parameters with the current network state
+                tx_features = self.encoder(tx_imgs)
+                tx_verts = v_src + self.predict_disp_verts(v_src, tx_features).view(B, -1, 3)
+                tx_S = self.predict_scales(tx_features)[:, None]
+                tx_R, tx_T = self.predict_poses(tx_features)
+                tx_bg = self.predict_background(tx_features) if self.pred_background else None
+            tx_mesh = Meshes(tx_verts * tx_S, faces, textures)
+            swap_list.append([tx_mesh, tx_R, tx_T, tx_bg, tx_imgs])
 
-                # Swapped textures
-                with torch.no_grad():
-                    # we recompute parameters with the current network state
-                    tx_features = self.encoder(tx_imgs)
-                    tx_verts = v_src + self.predict_disp_verts(v_src, tx_features).view(B, -1, 3)
-                    tx_S = self.predict_scales(tx_features)[:, None]
-                    tx_R, tx_T = self.predict_poses(tx_features)
-                    tx_bg = self.predict_background(tx_features) if self.pred_background else None
-                tx_mesh = Meshes(tx_verts * tx_S, faces, textures)
-                swap_list.append([tx_mesh, tx_R, tx_T, tx_bg, tx_imgs])
-
-                loss = 0.
-                for swap_inp in swap_list:
-                    swap_mesh, R, T, bkgs, imgs = swap_inp
-                    posed_meshes, R_cam, T_cam = self.update_with_poses(swap_mesh, R, T)
-                    rec_sw, alpha_sw = self.renderer(posed_meshes, R_cam, T_cam).split([3, 1], dim=1)
-                    rec_sw = rec_sw * alpha_sw + (1 - alpha_sw) * bkgs[:B] if bkgs is not None else rec_sw
-                    if 'rgb' in losses:
-                        loss += self.loss_weights['rgb'] * self.criterion(rec_sw, imgs).flatten(1).mean(1)
-                    if 'perceptual' in losses:
-                        loss += self.loss_weights['perceptual'] * self.perceptual_loss(rec_sw, imgs)
-                losses['swap'] = self.loss_weights['swap'] * loss
+            loss = 0.
+            for swap_inp in swap_list:
+                swap_mesh, R, T, bkgs, imgs = swap_inp
+                posed_meshes, R_cam, T_cam = self.update_with_poses(swap_mesh, R, T)
+                rec_sw, alpha_sw = self.renderer(posed_meshes, R_cam, T_cam).split([3, 1], dim=1)
+                rec_sw = rec_sw * alpha_sw + (1 - alpha_sw) * bkgs[:B] if bkgs is not None else rec_sw
+                if 'rgb' in losses:
+                    loss += self.loss_weights['rgb'] * self.criterion(rec_sw, imgs).flatten(1).mean(1)
+                if 'perceptual' in losses:
+                    loss += self.loss_weights['perceptual'] * self.perceptual_loss(rec_sw, imgs)
+            losses['swap'] = self.loss_weights['swap'] * loss
 
         # Pose priors
-        if self.training and not (self.alternate_optim and not self.pose_step):
-            if 'uniform' in losses:
-                losses['uniform'] = self.loss_weights['uniform'] * (self._pose_proba.mean(1) - 1 / K).abs().mean()
+        if update_pose and 'uniform' in losses:
+            losses['uniform'] = self.loss_weights['uniform'] * (self._pose_proba.mean(1) - 1 / K).abs().mean()
 
         dist = sum(losses.values())
         if K > 1:
