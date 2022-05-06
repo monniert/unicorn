@@ -23,10 +23,10 @@ Share With Thy Neighbors: Single-View Reconstruction by Cross-Instance Consisten
 </h2>
 </div>
 
-Official PyTorch implementation of the UNICORN :unicorn: system introduced in the [**Share
+Official PyTorch implementation of the UNICORN :unicorn: system introduced in [**Share
 With Thy Neighbors: Single-View Reconstruction by Cross-Instance
- Consistency**](https://arxiv.org/abs/2204.10310) paper. Check out our 
-[**webpage**](https://imagine.enpc.fr/~monniert/UNICORN) for extra video results!
+ Consistency**](https://arxiv.org/abs/2204.10310). Check out our 
+ [**webpage**](https://imagine.enpc.fr/~monniert/UNICORN) for video results!
 
 If you find this code useful, don't forget to star the repo :star: and cite the paper:
 
