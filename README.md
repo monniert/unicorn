@@ -1,18 +1,34 @@
 # UNICORN :unicorn:
 
-<h3>
-<a class="label label-info" href="http://imagine.enpc.fr/~monniert/UNICORN/">Webpage</a> |
-<a href="https://arxiv.org/abs/2204.10310">Paper</a> |
-<a href="http://imagine.enpc.fr/~monniert/UNICORN/ref.bib">BibTex</a>
-</h3>
+<div align="center">
+<h2>
+Share With Thy Neighbors: Single-View Reconstruction by Cross-Instance Consistency
+<p></p>
+
+<a href="http://imagine.enpc.fr/~monniert/">Tom Monnier</a>&emsp;
+<a href="https://techmatt.github.io/">Matthew Fisher</a>&emsp;
+<a href="https://people.eecs.berkeley.edu/~efros/">Alexei A. Efros</a>&emsp;
+<a href="http://imagine.enpc.fr/~aubrym/">Mathieu Aubry</a>
+
+<p></p>
+
+<a href="http://imagine.enpc.fr/~monniert/UNICORN/"><img src="https://img.shields.io/badge/►-Webpage-blue.svg?colorA=333" height=35em></a>
+<a href="https://arxiv.org/abs/2204.10310"><img src="https://img.shields.io/badge/►-Paper-blue.svg?colorA=333" height=35em></a>
+<a href="http://imagine.enpc.fr/~monniert/UNICORN/poster.pdf"><img src="https://img.shields.io/badge/►-Poster-blue.svg?colorA=333" height=35em></a>
+<a href="http://imagine.enpc.fr/~monniert/UNICORN/ref.bib"><img src="https://img.shields.io/badge/►-BibTeX-blue.svg?colorA=333" height=35em></a>
+<p></p>
 
 ![car.gif](./media/car.gif)
 ![bird.gif](./media/bird.gif)
 ![moto.gif](./media/moto.gif)
 
-PyTorch implementation of [**"Share With Thy Neighbors: Single-View Reconstruction 
-by Cross-Instance Consistency"**](https://arxiv.org/abs/2204.10310) paper, check out our 
-[**webpage**](https://imagine.enpc.fr/~monniert/UNICORN) for details!
+</h2>
+</div>
+
+Official PyTorch implementation of the UNICORN :unicorn: system introduced in the [**Share
+With Thy Neighbors: Single-View Reconstruction by Cross-Instance
+ Consistency**](https://arxiv.org/abs/2204.10310) paper. Check out our 
+[**webpage**](https://imagine.enpc.fr/~monniert/UNICORN) for extra video results!
 
 If you find this code useful, don't forget to star the repo :star: and cite the paper:
 
@@ -174,11 +190,13 @@ cuda=gpu_id config=custom.yml tag=custom_run_tag ./scripts/pipeline.sh
 
 If you like this project, check out related works from our group:
 
+- [Loiseau et al. - Representing Shape Collections with Alignment-Aware Linear Models (3DV
+  2021)](https://arxiv.org/abs/2109.01605) / [project webpage](https://romainloiseau.github.io/deep-linear-shapes/)
 - [Monnier et al. - Unsupervised Layered Image Decomposition into Object Prototypes (ICCV
-  2021)](https://arxiv.org/abs/2104.14575)
+  2021)](https://arxiv.org/abs/2104.14575) / [project webpage](http://imagine.enpc.fr/~monniert/DTI-Sprites/)
 - [Monnier et al. - Deep Transformation Invariant Clustering (NeurIPS 
-  2020)](https://arxiv.org/abs/2006.11132)
+  2020)](https://arxiv.org/abs/2006.11132) / [project webpage](http://imagine.enpc.fr/~monniert/DTIClustering/)
 - [Deprelle et al. - Learning elementary structures for 3D shape generation and matching 
-  (NeurIPS 2019)](https://arxiv.org/abs/1908.04725)
+  (NeurIPS 2019)](https://arxiv.org/abs/1908.04725) / [project webpage](https://imagine.enpc.fr/~deprellt/atlasnet2/)
 - [Groueix et al. - AtlasNet: A Papier-Mache Approach to Learning 3D Surface Generation (CVPR 
-  2018)](https://arxiv.org/abs/1802.05384)
+  2018)](https://arxiv.org/abs/1802.05384) / [project webpage](http://imagine.enpc.fr/~groueixt/atlasnet/)
