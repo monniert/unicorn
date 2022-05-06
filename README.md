@@ -18,9 +18,7 @@ Share With Thy Neighbors: Single-View Reconstruction by Cross-Instance Consisten
 <a href="http://imagine.enpc.fr/~monniert/UNICORN/ref.bib"><img src="https://img.shields.io/badge/►-BibTeX-blue.svg?colorA=333" height=35em></a>
 <p></p>
 
-![car.gif](./media/car.gif)
-![bird.gif](./media/bird.gif)
-![moto.gif](./media/moto.gif)
+![teaser.gif](./media/teaser.gif)
 
 </h2>
 </div>
