@@ -10,6 +10,7 @@ channels:
 dependencies:
   - cudatoolkit=10.1.243
   - fvcore=0.1.5.post20210518
+  - gdown==3.12.2
   - imageio==2.8.0
   - imageio-ffmpeg==0.4.2
   - iopath=0.1.8
@@ -22,5 +23,3 @@ dependencies:
   - seaborn=0.10.0
   - torchvision=0.6.0
   - toolz=0.10.0
-  - pip:
-    - gdown==3.12.2
