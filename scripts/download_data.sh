@@ -37,6 +37,7 @@ then
     mv PASCAL3D+_release1.1 pascal_3d
     echo "done, start downloading UCMR annotations..."
     wget https://people.eecs.berkeley.edu/~shubham-goel/projects/ucmr/cachedir-others.tar.gz && tar -vzxf cachedir-others.tar.gz
+    mv cachedir/p3d/data/car_val.mat cachedir/p3d/data/car_test.mat  # XXX renamed to correspond to the real test split
     mv cachedir/p3d datasets/pascal_3d/ucmr_anno
     rm -r cachedir
     echo "done"

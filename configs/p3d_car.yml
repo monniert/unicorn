@@ -1,5 +1,5 @@
 dataset:
-  name: car_p3d
+  name: p3d_car
   img_size: 64
 model:
   name: unicorn

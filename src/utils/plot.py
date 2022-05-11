@@ -21,8 +21,6 @@ class Visualizer:
         if viz_port is not None:
             import visdom
             os.environ["http_proxy"] = ""  # XXX set to solve proxy issues
-            if viz_port == 8888 and socket.gethostname() != 'eole':
-                viz_port = 8892
             visualizer = visdom.Visdom(port=viz_port, env=f'{run_dir.parent.name}_{run_dir.name}')
             visualizer.delete_env(visualizer.env)  # Clean env before plotting
             print_log(f"Visualizer initialised at {viz_port}")

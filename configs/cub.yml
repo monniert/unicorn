@@ -1,5 +1,5 @@
 dataset:
-  name: cub200
+  name: cub_200
   img_size: 64
 model:
   name: unicorn
