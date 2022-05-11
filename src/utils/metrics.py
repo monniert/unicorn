@@ -108,8 +108,6 @@ class MeshEvaluator:
     """
     Mesh evaluation class by computing similarity metrics between meshes.
     Code inspired from https://github.com/autonomousvision/differentiable_volumetric_rendering (see im2mesh/eval.py)
-    Args:
-        n_points (int): number of points to be used for evaluation
     """
 
     def __init__(self, names=None, log_file=None, fast_cpu=False, append=False):
