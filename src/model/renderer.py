@@ -309,8 +309,7 @@ def render_rotated_views(mesh, img_size=256, n_views=50, elev=30, dist=2.5, R=No
         R_view = look_at_view_transform(dist=1, elev=elev, azim=azim[k*B: (k+1)*B], device=device)[0]
         T_view = torch.Tensor([[0., 0., dist]]).to(device).expand(len(R_view), -1)
         if eye_light:
-            R_light = look_at_view_transform(dist=1, elev=-elev, azim=-azim[k*B: (k+1)*B], device=device)[0]
-            d = torch.Tensor([[0, 0, -1]]).to(device) @ R_light
+            d = torch.Tensor([[0, 0, -1]]).to(device) @ R_view.transpose(1, 2)
             renderer.update_lights(direction=d)
         views.append(renderer(mesh.extend(len(R_view)), R_view @ R, T_view + T, viz_purpose=True).clamp(0, 1).cpu())
 
