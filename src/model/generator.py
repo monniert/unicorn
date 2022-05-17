@@ -21,9 +21,6 @@ class GiraffeGenerator(nn.Module):
         self.use_rgb_skip = kwargs.pop('use_rgb_skip', True)
         self.use_norm = kwargs.pop('use_norm', False)
         upsample_feat, upsample_rgb = kwargs.pop('upsample_feat', 'nn'), kwargs.pop('upsample_rgb', 'bilinear')
-        zero_init = kwargs.pop('zero_skip_init', False)
-        self.cur_milestone = 0
-        self.set_milestones(kwargs.pop('milestones', None))
         assert len(kwargs) == 0
 
         n_ch_fn = lambda i: max(n_features // (2 ** i), min_features)
@@ -36,8 +33,8 @@ class GiraffeGenerator(nn.Module):
         self.upsample_rgb = create_upsample_layer(upsample_rgb)
 
         if self.use_rgb_skip:
-            seq = [conv3x3(n_ch_fn(i + 1), out_dim, zero_init=zero_init) for i in range(self.n_blocks)]
-            self.conv_rgb = nn.ModuleList([conv3x3(n_features, out_dim, zero_init=zero_init)] + seq)
+            seq = [conv3x3(n_ch_fn(i + 1), out_dim) for i in range(self.n_blocks)]
+            self.conv_rgb = nn.ModuleList([conv3x3(n_features, out_dim)] + seq)
         else:
             self.conv_rgb = conv3x3(n_ch_fn(self.n_blocks), out_dim)
         if self.use_norm:
@@ -62,47 +59,13 @@ class GiraffeGenerator(nn.Module):
             net = self.actvn(hid)
 
             if self.use_rgb_skip:
-                new_rgb = self.conv_rgb[idx + 1](net)
-                if not self.activations[idx]:
-                    new_rgb = 0 * new_rgb
-                rgb = rgb + new_rgb
+                rgb = rgb + self.conv_rgb[idx + 1](net)
                 if idx < self.n_blocks - 1:
                     rgb = self.upsample_rgb(rgb)
 
         if not self.use_rgb_skip:
             rgb = self.conv_rgb(net)
         return torch.sigmoid(rgb)
-
-    def step(self):
-        self.cur_milestone += 1
-        while self.act_idx < self.n_blocks and self.act_milestones[self.act_idx] <= self.cur_milestone:
-            self.activations[self.act_idx] = True
-            print_log('Milestone {}, giraffe: layer {} activated'.format(self.cur_milestone, self.act_idx))
-            self.act_idx += 1
-
-    def set_cur_milestone(self, k):
-        self.cur_milestone = k
-        while self.act_idx < self.n_blocks and self.act_milestones[self.act_idx] <= self.cur_milestone:
-            self.activations[self.act_idx] = True
-            self.act_idx += 1
-        print_log('giraffe activated layers={}'.format([k for k, a in enumerate(self.activations) if a]))
-
-    def set_milestones(self, milestones):
-        if milestones is not None:
-            milestones = [milestones] if isinstance(milestones, int) else milestones
-            assert len(milestones) == self.n_blocks
-            self.act_milestones = milestones
-            n_act = (np.asarray(milestones) <= self.cur_milestone).sum()
-            self.act_idx = n_act
-            self.activations = [True] * n_act + [False] * (self.n_blocks - n_act)
-            print_log('giraffe activated layers={}'.format([k for k, a in enumerate(self.activations) if a]))
-        else:
-            self.act_milestones, self.act_idx = [-1] * self.n_blocks, self.n_blocks
-            self.activations = [True] * self.n_blocks
-
-    @property
-    def is_frozen(self):
-        return sum(self.activations) == 0
 
 
 class ProgressiveGiraffeGenerator(nn.Module):
@@ -113,9 +76,10 @@ class ProgressiveGiraffeGenerator(nn.Module):
         self.latent_size = self.powers[-1]
         assert all([self.latent_size % p == 0 for p in powers])
         self.repeat_latent = [self.latent_size // p for p in powers]
+        n_features = kwargs.pop('n_features', self.latent_size)
         NU, NL = kwargs.pop('n_reg_units', N_UNITS), kwargs.pop('n_reg_layers', N_LAYERS)
         self.regressor = create_mlp(inp_dim, self.latent_size, NU, NL, zero_last_init=True)
-        self.generator = GiraffeGenerator(inp_dim=self.latent_size, **kwargs)
+        self.generator = GiraffeGenerator(n_features=n_features, inp_dim=self.latent_size, **kwargs)
         self.cur_milestone = 0
         self.set_milestones(milestones)
 
