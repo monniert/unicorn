@@ -40,10 +40,10 @@ MEMSIZE = 1024
 class Unicorn(nn.Module):
     name = 'unicorn'
 
-    def __init__(self, dataset, **kwargs):
+    def __init__(self, img_size, **kwargs):
         super().__init__()
-        img_size = dataset.img_size
         self.init_kwargs = deepcopy(kwargs)
+        self.init_kwargs['img_size'] = img_size
         self.encoder = Encoder(img_size, **kwargs.get('encoder', {}))
         self._init_meshes(**kwargs.get('mesh', {}))
         self.renderer = Renderer(img_size, **kwargs.get('renderer', {}))

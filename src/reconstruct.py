@@ -1,4 +1,5 @@
 import argparse
+import warnings
 
 import numpy as np
 from torch.utils.data import DataLoader
@@ -17,6 +18,7 @@ BATCH_SIZE = 32
 N_WORKERS = 4
 PRINT_ITER = 10
 SAVE_GIF = True
+warnings.filterwarnings("ignore")
 
 
 if __name__ == '__main__':
@@ -27,12 +29,13 @@ if __name__ == '__main__':
     assert args.model is not None and args.input is not None
 
     device = get_torch_device()
-    data = get_dataset(args.input)(split="train", img_size=64)
+    m = load_model_from_path(MODELS_PATH / args.model).to(device)
+    m.eval()
+    print_log(f"Model {args.model} loaded: input img_size is set to {m.init_kwargs['img_size']}")
+
+    data = get_dataset(args.input)(split="train", img_size=m.init_kwargs['img_size'])
     loader = DataLoader(data, batch_size=BATCH_SIZE, num_workers=N_WORKERS, shuffle=False)
     print_log(f"Found {len(data)} images in the folder")
-
-    m = load_model_from_path(MODELS_PATH / args.model, data).to(device)
-    m.eval()
 
     print_log("Starting reconstruction...")
     out = path_mkdir(args.input + '_rec')

@@ -39,7 +39,7 @@ class Trainer:
         self.run_dir = path_mkdir(run_dir)
         self.device = get_torch_device(gpu, verbose=True)
         self.train_loader, self.val_loader, self.test_loader = create_train_val_test_loader(cfg, rank, world_size)
-        self.model = create_model(cfg, self.train_loader.dataset).to(self.device)
+        self.model = create_model(cfg, self.train_loader.dataset.img_size).to(self.device)
         self.optimizer = create_optimizer(cfg, self.model)
         self.scheduler = create_scheduler(cfg, self.optimizer)
         self.epoch_start, self.batch_start = 1, 1
@@ -68,6 +68,8 @@ class Trainer:
         if self.with_training:  # no visualizer if eval only
             viz_port = cfg["training"].get('visualizer_port') if self.is_master else None
             self.visualizer = Visualizer(viz_port, self.run_dir)
+        else:
+            self.visualizer = Visualizer(None, self.run_dir)
 
     @property
     def with_training(self):

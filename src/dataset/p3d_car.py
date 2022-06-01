@@ -37,15 +37,11 @@ class P3DCarDataset(TorchDataset):
         self.data = scio.loadmat(str(path), struct_as_record=False, squeeze_me=True)['images']
         self.size = len(self.data) if self.split != 'val' else 5
 
+        self.img_size = (img_size, img_size) if isinstance(img_size, int) else img_size
         self.bbox_crop = kwargs.pop('bbox_crop', BBOX_CROP)
         self.resize_mode = kwargs.pop('resize_mode', 'crop')
         assert self.resize_mode in ['crop', 'pad']
         self.padding_mode = kwargs.pop('padding_mode', 'edge')
-        if isinstance(img_size, int):
-            self.img_size, self.keep_aspect = (img_size, img_size), True
-            self.random_crop = kwargs.pop('random_crop', False) and split == 'train'
-        else:
-            self.img_size, self.keep_aspect = img_size, False
         self.random_flip = kwargs.pop('random_flip', RANDOM_FLIP)
         self.random_jitter = kwargs.pop('random_jitter', RANDOM_JITTER)
         self.padding_box = kwargs.pop('padding_box', PADDING_BBOX)

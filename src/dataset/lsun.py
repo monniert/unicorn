@@ -50,13 +50,10 @@ class LSUNDataset(TorchDataset):
         self.max_size = kwargs.pop('max_size', self.size)
         self.chunk_idx = 0
 
+        self.img_size = (img_size, img_size) if isinstance(img_size, int) else img_size
         self.resize_mode = kwargs.pop('resize_mode', 'pad')
         assert self.resize_mode in ['crop', 'pad']
         self.padding_mode = kwargs.pop('padding_mode', 'edge')
-        if isinstance(img_size, int):
-            self.img_size, self.keep_aspect = (img_size, img_size), True
-        else:
-            self.img_size, self.keep_aspect = img_size, False
         self.random_flip = kwargs.pop('random_flip', RANDOM_FLIP)
         assert len(kwargs) == 0, kwargs
 
@@ -88,14 +85,11 @@ class LSUNDataset(TorchDataset):
     @property
     @lru_cache()
     def transform(self):
-        if self.keep_aspect:
-            size = self.img_size[0]
-            if self.resize_mode == 'pad':
-                tsfs = [ResizeCust(size, fit_inside=True), SquarePad(padding_mode=self.padding_mode), ToTensor()]
-            else:
-                tsfs = [Resize(size), CenterCrop(size), ToTensor()]
+        size = self.img_size[0]
+        if self.resize_mode == 'pad':
+            tsfs = [ResizeCust(size, fit_inside=True), SquarePad(padding_mode=self.padding_mode), ToTensor()]
         else:
-            tsfs = [Resize(self.img_size), ToTensor()]
+            tsfs = [Resize(size), CenterCrop(size), ToTensor()]
         if self.random_flip and self.split == 'train':
             tsfs = [RandomHorizontalFlip()] + tsfs
         return Compose(tsfs)

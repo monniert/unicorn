@@ -28,14 +28,11 @@ class CompCarsDataset(TorchDataset):
                 np.random.shuffle(last)
                 self.input_files = first + last
 
+        self.img_size = (img_size, img_size) if isinstance(img_size, int) else img_size
         self.resize_mode = kwargs.pop('resize_mode', 'pad')
         assert self.resize_mode in ['crop', 'pad']
         self.padding_mode = kwargs.pop('padding_mode', 'edge')
-        if isinstance(img_size, int):
-            self.img_size, self.keep_aspect = (img_size, img_size), True
-            self.random_crop = kwargs.pop('random_crop', False) and split == 'train'
-        else:
-            self.img_size, self.keep_aspect = img_size, False
+        self.random_crop = kwargs.pop('random_crop', False) and split == 'train'
         assert len(kwargs) == 0, kwargs
 
     def __len__(self):
@@ -49,14 +46,11 @@ class CompCarsDataset(TorchDataset):
     @property
     @lru_cache()
     def transform(self):
-        if self.keep_aspect:
-            size = self.img_size[0]
-            if self.resize_mode == 'pad':
-                tsfs = [ResizeCust(size, fit_inside=True), SquarePad(padding_mode=self.padding_mode), ToTensor()]
-            elif self.random_crop:
-                tsfs = [Resize(size), RandomCrop(size), ToTensor()]
-            else:
-                tsfs = [Resize(size), CenterCrop(size), ToTensor()]
+        size = self.img_size[0]
+        if self.resize_mode == 'pad':
+            tsfs = [ResizeCust(size, fit_inside=True), SquarePad(padding_mode=self.padding_mode), ToTensor()]
+        elif self.random_crop:
+            tsfs = [Resize(size), RandomCrop(size), ToTensor()]
         else:
-            tsfs = [Resize(self.img_size), ToTensor()]
+            tsfs = [Resize(size), CenterCrop(size), ToTensor()]
         return Compose(tsfs)
