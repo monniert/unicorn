@@ -44,7 +44,7 @@ then
 
 elif [ $ds_id == 3 ]
 then
-    echo "start downloading Pascal3D+..."
+    echo "start downloading CompCars..."
     wget https://s3.eu-central-1.amazonaws.com/avg-projects/giraffe/data/comprehensive_cars.zip
     echo "done, start unzipping..."
     unzip comprehensive_cars.zip

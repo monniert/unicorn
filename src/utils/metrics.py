@@ -10,6 +10,8 @@ from utils.logger import print_warning
 from .chamfer import chamfer_distance
 
 
+CHAMFER_FACTOR = 10  # standard factor used to report Chamfer, see OccNet or DVR
+
 # Maximum values for bounding box [-0.5, 0.5]^3
 EMPTY_PCL_LIST = [('chamfer-L1', np.sqrt(6)), ('chamfer-L1-ICP', np.sqrt(6)), ('normal-cos', 0), ('normal-cos-ICP', 0)]
 
@@ -158,6 +160,7 @@ class MeshEvaluator:
         for pc, tag in zip(pc_preds, tags):
             chamfer_L1, normal = chamfer_distance(pc_gt[None], pc[None], x_normals=normal_gt, y_normals=normal_pred,
                                                   return_L1=True, return_mean=True)
+            chamfer_L1 = chamfer_L1 * CHAMFER_FACTOR
             results += [('chamfer-L1' + tag, chamfer_L1.item()), ('normal-cos' + tag, 1 - normal.item())]
 
         results = list(filter(lambda x: x[0] in self.names, results))

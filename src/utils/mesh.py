@@ -85,7 +85,7 @@ def get_icosphere(level=3, order_verts_by=None, colored=False):
 
 
 def normal_consistency(meshes, icosphere_topology=True, shared_topology=True):
-    """Use a x100 faster routine than the one in PyTorch3D when meshes have an icosphere topology"""
+    """Use a x10 faster routine than the one in PyTorch3D when meshes have an icosphere topology"""
     if not icosphere_topology:
         return mesh_normal_consistency(meshes)
 
