@@ -5,19 +5,24 @@ dataset:
   cleaned: True
 model:
   name: unicorn
+  encoder:
+    shared: False
   mesh:
     init: ellipse
     scale: 0.6
     use_mean_txt: True
     deform_fields:
-      powers: [2, 8, 32]
+      bias_last: False
+      powers: [2, 8, 64]
       milestones: [1090, 2180, 3270]
     texture_uv:
       img_size: 64
-      powers: [2, 8, 32, 128]
+      min_features: 64
+      powers: [2, 8, 64, 512]
       milestones: [0, 1090, 2180, 3270]
   background:
-    powers: [4, 8, 32, 128]
+    min_features: 64
+    powers: [4, 8, 64, 256]
     milestones: [0, 1090, 2180, 3270]
   renderer:
     cameras:

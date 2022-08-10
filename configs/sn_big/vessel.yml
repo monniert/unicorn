@@ -1,19 +1,25 @@
 dataset:
   name: shapenet_nmr
-  categories: [table]
+  categories: [vessel]
 model:
   name: unicorn
+  encoder:
+    name: resnet18
+    shared: False
   mesh:
     init: ellipse
     scale: 0.4
     use_mean_txt: True
     deform_fields:
-      powers: [2, 8, 32]
-      milestones: [11, 67, 123]
+      powers: [2, 8, 64]
+      milestones: [49, 294, 540]
+      n_field_units: 512
+      bias_last: False
     texture_uv:
       img_size: 64
-      powers: [2, 8, 32, 128]
-      milestones: [0, 11, 67, 123]
+      min_features: 64
+      powers: [2, 8, 64, 512]
+      milestones: [0, 49, 294, 540]
   renderer:
     cameras:
       name: perspective
@@ -27,8 +33,8 @@ model:
     T_range: [0.2, 0.2, 0]
     scale_range: [0.5, 0.5, 0.5]
   milestones:
-    freeze_scale_predictor: 2
-    constant_txt: 10
+    freeze_scale_predictor: 10
+    constant_txt: 49
   loss:
     name: mse
     rgb_weight: 1
@@ -37,6 +43,8 @@ model:
     normal_weight: 0.01
     uniform_weight: 0.02
     swap_weight: 1
+    swap_memsize: 1024
+    swap_n_vpbins: 5
 training:
   batch_size: 32
   n_workers: 4
@@ -46,11 +54,11 @@ training:
   scheduler:
     name: multi_step
     gamma: 0.2
-    milestones: [179]
-  n_epoches: 190
-  save_epoches: [10, 67, 123]
+    milestones: [786]
+  n_epoches: 835
+  save_epoches: [49, 294, 540]
   train_stat_interval: 2000
   val_stat_interval: 4000
-  seed: 4602
+  seed: 63721
   visualizer_port:
   resume:

@@ -2,7 +2,7 @@
 
 <div align="center">
 <h2>
-Share With Thy Neighbors: Single-View Reconstruction by Cross-Instance Consistency
+Share With Thy Neighbors:<br> Single-View Reconstruction by Cross-Instance Consistency
 <p></p>
 
 <a href="https://imagine.enpc.fr/~monniert/">Tom Monnier</a>&emsp;
@@ -13,13 +13,13 @@ Share With Thy Neighbors: Single-View Reconstruction by Cross-Instance Consisten
 <p></p>
 
 <a href="https://imagine.enpc.fr/~monniert/UNICORN/"><img 
-src="https://img.shields.io/badge/►-Webpage-blue.svg?colorA=333" height=35em></a>
+src="https://img.shields.io/badge/-Webpage-blue.svg?colorA=333&logo=html5" height=35em></a>
 <a href="https://arxiv.org/abs/2204.10310"><img 
-src="https://img.shields.io/badge/►-Paper-blue.svg?colorA=333" height=35em></a>
+src="https://img.shields.io/badge/-Paper-blue.svg?colorA=333&logo=arxiv" height=35em></a>
 <a href="https://github.com/monniert/unicorn"><img 
-src="https://img.shields.io/badge/►-Code-blue.svg?colorA=333" height=35em></a>
+src="https://img.shields.io/badge/-Demo-blue.svg?colorA=333&logo=googlecolab" height=35em></a>
 <a href="https://imagine.enpc.fr/~monniert/UNICORN/ref.bib"><img 
-src="https://img.shields.io/badge/►-BibTeX-blue.svg?colorA=333" height=35em></a>
+src="https://img.shields.io/badge/-BibTeX-blue.svg?colorA=333&logo=latex" height=35em></a>
 <p></p>
 
 ![teaser.gif](./media/teaser.gif)
@@ -27,19 +27,18 @@ src="https://img.shields.io/badge/►-BibTeX-blue.svg?colorA=333" height=35em></
 </h2>
 </div>
 
-Official PyTorch implementation of the UNICORN system introduced in [**Share
+Official PyTorch implementation of [**Share
 With Thy Neighbors: Single-View Reconstruction by Cross-Instance
- Consistency**](https://arxiv.org/abs/2204.10310). Check out our 
+ Consistency**](https://arxiv.org/abs/2204.10310) (ECCV 2022). Check out our 
  [**webpage**](https://imagine.enpc.fr/~monniert/UNICORN) for video results!
 
 If you find this code useful, don't forget to star the repo :star: and cite the paper:
 
 ```
-@article{monnier2022unicorn,
-  title={{Share With Thy Neighbors: Single-View Reconstruction by Cross-Instance 
-  Consistency}},
+@inproceedings{monnier2022unicorn,
+  title={{Share With Thy Neighbors: Single-View Reconstruction by Cross-Instance Consistency}},
   author={Monnier, Tom and Fisher, Matthew and Efros, Alexei A and Aubry, Mathieu},
-  journal={arXiv:2204.10310 [cs]},
+  booktitle={{ECCV}},
   year={2022},
 }
 ```

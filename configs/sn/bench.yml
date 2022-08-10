@@ -9,11 +9,11 @@ model:
     use_mean_txt: True
     deform_fields:
       powers: [2, 8, 32]
-      milestones: [50, 260, 470]
+      milestones: [52, 314, 576]
     texture_uv:
       img_size: 64
       powers: [2, 8, 32, 128]
-      milestones: [0, 50, 260, 470]
+      milestones: [0, 52, 314, 576]
   renderer:
     cameras:
       name: perspective
@@ -28,7 +28,7 @@ model:
     scale_range: [0.5, 0.5, 0.5]
   milestones:
     freeze_scale_predictor: 10
-    constant_txt: 50
+    constant_txt: 52
   loss:
     name: mse
     rgb_weight: 1
@@ -37,18 +37,20 @@ model:
     normal_weight: 0.01
     uniform_weight: 0.02
     swap_weight: 1
-    swap_memsize: 1024
-    swap_n_vpbins: 4
 training:
   batch_size: 32
   n_workers: 4
   optimizer:
     name: adam
     lr: 1.0e-4
-  n_epoches: 680
-  save_epoches: [50, 260, 470]
+  scheduler:
+    name: multi_step
+    gamma: 0.2
+    milestones: [839]
+  n_epoches: 891
+  save_epoches: [52, 314, 576]
   train_stat_interval: 2000
   val_stat_interval: 4000
   seed: 15049
   visualizer_port:
-  resume: 
+  resume:

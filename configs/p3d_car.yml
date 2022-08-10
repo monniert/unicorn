@@ -9,14 +9,14 @@ model:
     use_mean_txt: True
     deform_fields:
       powers: [2, 8, 32]
-      milestones: [5000, 10000, 15000]
+      milestones: [4800, 9600, 14400]
     texture_uv:
       img_size: 64
       powers: [2, 8, 32, 128]
-      milestones: [0, 5000, 10000, 15000]
+      milestones: [0, 4800, 9600, 14400]
   background:
-    powers: [4, 16, 64, 128]
-    milestones: [0, 5000, 10000, 15000]
+    powers: [4, 8, 32, 128]
+    milestones: [0, 4800, 9600, 14400]
   renderer:
     cameras:
       name: fov
@@ -29,9 +29,10 @@ model:
     T_range: [0.3, 0.3, 0.3]
     scale_range: [0.3, 0.3, 0.3]
   milestones:
-    freeze_T_predictor: 50
-    freeze_shape: 100
-    freeze_scale_predictor: 1500
+    freeze_T_predictor: 10
+    freeze_shape: 20
+    freeze_scale_predictor: 1600
+    mean_text: 14400
   loss:
     name: mse
     rgb_weight: 1
@@ -40,18 +41,16 @@ model:
     normal_weight: 0.01
     uniform_weight: 0.02
     swap_weight: 1
-    swap_memsize: 1024
-    swap_n_vpbins: 4
 training:
   batch_size: 32
   n_workers: 4
   optimizer:
     name: adam
     lr: 1.0e-4
-  n_epoches: 20000
-  save_epoches: [5000, 10000, 15000]
+  n_epoches: 19200
+  save_epoches: [4800, 9600, 14400]
   train_stat_interval: 2000
   val_stat_interval: 4000
-  seed: 4444
+  seed: 992817
   visualizer_port:
   resume:

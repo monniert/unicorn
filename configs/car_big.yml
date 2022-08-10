@@ -1,24 +1,27 @@
 dataset:
-  name: lsun
-  tag: motorbike
+  name: comp_cars
   img_size: 64
-  cleaned: True
 model:
   name: unicorn
+  encoder:
+    shared: False
   mesh:
     init: ellipse
     scale: 0.6
     use_mean_txt: True
     deform_fields:
-      powers: [2, 8, 32]
-      milestones: [1090, 2180, 3270]
+      bias_last: False
+      powers: [2, 8, 64]
+      milestones: [175, 350, 525]
     texture_uv:
       img_size: 64
-      powers: [2, 8, 32, 128]
-      milestones: [0, 1090, 2180, 3270]
+      min_features: 64
+      powers: [2, 8, 64, 512]
+      milestones: [0, 175, 350, 525]
   background:
-    powers: [4, 8, 32, 128]
-    milestones: [0, 1090, 2180, 3270]
+    min_features: 64
+    powers: [4, 8, 64, 256]
+    milestones: [0, 175, 350, 525]
   renderer:
     cameras:
       name: fov
@@ -31,10 +34,10 @@ model:
     T_range: [0.3, 0.3, 0.3]
     scale_range: [0.3, 0.3, 0.3]
   milestones:
-    freeze_T_predictor: 5
-    freeze_shape: 10
-    freeze_scale_predictor: 360
-    mean_txt: 3270
+    freeze_T_predictor: 2
+    freeze_shape: 4
+    freeze_scale_predictor: 60
+    mean_txt: 525
   loss:
     name: mse
     rgb_weight: 1
@@ -49,10 +52,10 @@ training:
   optimizer:
     name: adam
     lr: 1.0e-4
-  n_epoches: 4360
-  save_epoches: [1090, 2180, 3270]
+  n_epoches: 700
+  save_epoches: [175, 350, 525]
   train_stat_interval: 2000
   val_stat_interval: 4000
-  seed: 9918192
+  seed: 993166
   visualizer_port:
-  resume:
+  resume: 

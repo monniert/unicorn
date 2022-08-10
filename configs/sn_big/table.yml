@@ -3,16 +3,22 @@ dataset:
   categories: [table]
 model:
   name: unicorn
+  encoder:
+    name: resnet18
+    shared: False
   mesh:
     init: ellipse
     scale: 0.4
     use_mean_txt: True
     deform_fields:
-      powers: [2, 8, 32]
+      powers: [2, 8, 64]
       milestones: [11, 67, 123]
+      n_field_units: 512
+      bias_last: False
     texture_uv:
       img_size: 64
-      powers: [2, 8, 32, 128]
+      min_features: 64
+      powers: [2, 8, 64, 512]
       milestones: [0, 11, 67, 123]
   renderer:
     cameras:
@@ -37,6 +43,8 @@ model:
     normal_weight: 0.01
     uniform_weight: 0.02
     swap_weight: 1
+    swap_memsize: 1024
+    swap_n_vpbins: 5
 training:
   batch_size: 32
   n_workers: 4
