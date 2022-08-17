@@ -184,7 +184,7 @@ cuda=gpu_id model=car_big.pkl input=demo ./scripts/reconstruct.sh
 ```
 
 where `gpu_id` is a target cuda device id, `car_big.pkl` corresponds to a pretrained model, `demo` is a folder containing the target images.
-It will create a folder `demo_rec` containing the reconstructed meshes (.obj format + gif visualizations).
+Reconstruction results (.obj + gif) will be saved in a folder `demo_rec`.
 
 ► We also provide an [interactive demo ![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://imagine.enpc.fr/~monniert/UNICORN/demo)
 to reconstruct cars from single images.
@@ -199,11 +199,10 @@ To launch a training from scratch, run:
 cuda=gpu_id config=filename.yml tag=run_tag ./scripts/pipeline.sh
 ```
 
-where `gpu_id` is a target cuda device id, `filename.yml` is a YAML config located in `configs` folder, `run_tag` is a tag for the experiment.
+where `gpu_id` is a device id, `filename.yml` is a config in `configs` folder, `run_tag` is a tag for the experiment.
 
 Results are saved at `runs/${DATASET}/${DATE}_${run_tag}` where `DATASET` is the dataset name 
-specified in `filename.yml` and `DATE` is the current date in `mmdd` format. Some training 
-visual results like reconstruction examples will be saved.
+specified in `filename.yml` and `DATE` is the current date in `mmdd` format.
 
 <details>
 <summary><b>Configs and guidelines :high_brightness:</b></summary>
@@ -217,21 +216,21 @@ Available configs are:
 - `moto.yml`, `horse_big.yml` for LSUN Motorbike dataset
 - `p3d_car.yml`, `p3d_car_big.yml` for Pascal3D+ Car dataset
 
-**:exclamation:NB: we advocate to always check the results during the first stage.** In particular for complex cases like birds or horses, we found that it can still fall 
-into bad minima. You may have to relaunch a training using a different seed to get good reconstructions.
+**:exclamation:NB: we advocate to always check the results after the first stage.** In particular for real complex cases like birds/horses, learning can fall 
+into bad minima with bad prototypical shapes. If so, relaunch the training using a different seed.
 </details>
 
 <details>
 <summary><b>Small vs big model :muscle:</b></summary>
 
-For each dataset, we provide two config files to train a small and a big version of the model. Both versions give great results, the main benefit of the bigger model
-is slightly more detailed textures and background images. The architecture differences are:
+We provide two configs to train a small and a big version of the model. Both versions give great results, the main benefit of the bigger model
+is slightly more detailed textures. The architecture differences are:
 
 - a shared backbone vs separate backbones
 - 32/128/128 vs 64/512/256 code sizes for shape/texture/background
 - 16 vs 64 minimal number of channels in the generators
 
-For faster experiments and prototyping, we advocate the use of the small version.
+For faster experiments and prototyping, <b>we advocate the training of the small version</b>.
 </details>
 
 <details>
@@ -246,11 +245,11 @@ On a single GPU, the approximate training times are:
 
 ### 3. Reproduce our quantitative results :bar_chart:
 
-When a model is trained, it is evaluated at the end of training. In order to evaluate a pretrained model (e.g. `sn_big_airplane.pkl`), do the following:
+A model is evaluated at the end of training. To evaluate a pretrained model (e.g. `sn_big_airplane.pkl`):
 
-1. move the model to a fake folder in `runs/${DATASET}` and rename it `model.pkl` (e.g. `shapenet_nmr/airplane_big/model.pkl`)
-2. point the fake tag in `training.resume` in the yaml config (e.g. set `resume: airplane_big` in `sn_big/airplane.yml`)
-3. launch the training (and thus evaluation) with
+1. move the model to a fake folder in `runs/${DATASET}` (e.g. `shapenet_nmr/airplane`) and rename it `model.pkl`
+2. point to the fake tag to resume from in the config (e.g. `resume: airplane` in `airplane.yml`)
+3. launch the training (and thus evaluation) with:
 
 ```
 cuda=gpu_id config=sn_big/airplane.yml tag=airplane_big_eval ./scripts/pipeline.sh
@@ -277,7 +276,7 @@ If you want to learn a model for a custom object category, here are the key thin
 to do:
 
 1. put your images in a `custom_name` folder inside the `datasets` folder
-2. write a config `custom.yml` with `custom_name` as `dataset.name` and move it to the `configs` folder: as a rule of thumb for the progressive conditioning milestones, put the number of epochs corresponding to 750k iterations for each stage
+2. write a config `custom.yml` with `custom_name` as `dataset.name` and move it to the `configs` folder: as a rule of thumb, put the number of epochs corresponding to 750k iterations for each stage
 3. launch training with:
 
 ```
@@ -288,6 +287,8 @@ cuda=gpu_id config=custom.yml tag=custom_run_tag ./scripts/pipeline.sh
 
 If you like this project, check out related works from our group:
 
+- [Loiseau et al. - Representing Shape Collections with Alignment-Aware Linear Models (3DV
+  2021)](https://romainloiseau.github.io/deep-linear-shapes/)
 - [Monnier et al. - Unsupervised Layered Image Decomposition into Object Prototypes (ICCV
   2021)](https://imagine.enpc.fr/~monniert/DTI-Sprites/)
 - [Monnier et al. - Deep Transformation Invariant Clustering (NeurIPS 

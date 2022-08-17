@@ -53,6 +53,6 @@ if __name__ == '__main__':
             mcenter = normalize(meshes[k])
             save_mesh_as_obj(mcenter, out / f'{name}_mesh.obj')
             if SAVE_GIF:
-                save_mesh_as_gif(mcenter, out / f'{name}_mesh.gif', n_views=50, dist=d, elev=e, renderer=m.renderer)
+                save_mesh_as_gif(mcenter, out / f'{name}_mesh.gif', n_views=100, dist=d, elev=e, renderer=m.renderer)
 
     print_log("Done!")
