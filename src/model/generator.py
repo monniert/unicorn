@@ -8,6 +8,10 @@ from .tools import (Identity, conv1x1, conv3x3, create_mlp, N_UNITS, N_LAYERS, c
 from utils.logger import print_log
 
 
+def get_generator(name):
+    return {'giraffe': GiraffeGenerator}[name]
+
+
 class GiraffeGenerator(nn.Module):
     """Neural renderer class from https://github.com/autonomousvision/giraffe"""
 
@@ -20,7 +24,7 @@ class GiraffeGenerator(nn.Module):
         self.feat_w, self.feat_h = [int(s / 2 ** self.n_blocks) for s in self.img_size]
         self.use_rgb_skip = kwargs.pop('use_rgb_skip', True)
         self.use_norm = kwargs.pop('use_norm', False)
-        upsample_feat, upsample_rgb = kwargs.pop('upsample_feat', 'nn'), kwargs.pop('upsample_rgb', 'bilinear')
+        upsample_feat, upsample_rgb = kwargs.pop('upsample_feat', 'nn'), kwargs.pop('upsample_rgb', 'bilinear_blur')
         assert len(kwargs) == 0
 
         n_ch_fn = lambda i: max(n_features // (2 ** i), min_features)
@@ -33,8 +37,7 @@ class GiraffeGenerator(nn.Module):
         self.upsample_rgb = create_upsample_layer(upsample_rgb)
 
         if self.use_rgb_skip:
-            seq = [conv3x3(n_ch_fn(i + 1), out_dim) for i in range(self.n_blocks)]
-            self.conv_rgb = nn.ModuleList([conv3x3(n_features, out_dim)] + seq)
+            self.conv_rgb = nn.ModuleList([conv3x3(n_ch_fn(i), out_dim) for i in range(self.n_blocks + 1)])
         else:
             self.conv_rgb = conv3x3(n_ch_fn(self.n_blocks), out_dim)
         if self.use_norm:
@@ -68,7 +71,7 @@ class GiraffeGenerator(nn.Module):
         return torch.sigmoid(rgb)
 
 
-class ProgressiveGiraffeGenerator(nn.Module):
+class ProgressiveGenerator(nn.Module):
     def __init__(self, inp_dim, powers, milestones, **kwargs):
         super().__init__()
         self.powers = [powers] if isinstance(powers, int) else powers
@@ -76,10 +79,11 @@ class ProgressiveGiraffeGenerator(nn.Module):
         self.latent_size = self.powers[-1]
         assert all([self.latent_size % p == 0 for p in powers])
         self.repeat_latent = [self.latent_size // p for p in powers]
-        n_features = kwargs.pop('n_features', self.latent_size)
         NU, NL = kwargs.pop('n_reg_units', N_UNITS), kwargs.pop('n_reg_layers', N_LAYERS)
+        n_features = kwargs.pop('n_features', self.latent_size)
+        self.name = kwargs.pop('name', 'giraffe')
         self.regressor = create_mlp(inp_dim, self.latent_size, NU, NL, zero_last_init=True)
-        self.generator = GiraffeGenerator(n_features=n_features, inp_dim=self.latent_size, **kwargs)
+        self.generator = get_generator(self.name)(n_features=n_features, inp_dim=self.latent_size, **kwargs)
         self.cur_milestone = 0
         self.set_milestones(milestones)
 
@@ -100,7 +104,7 @@ class ProgressiveGiraffeGenerator(nn.Module):
         while self.act_idx < self.n_powers and self.act_milestones[self.act_idx] <= self.cur_milestone:
             self.activations[self.act_idx] = True
             m, p = self.cur_milestone, self.powers[self.act_idx]
-            print_log('Milestone {}, progressive giraffe: power {} activated'.format(m, p))
+            print_log('Milestone {}, progressive {} generator: power {} activated'.format(m, self.name, p))
             self.act_idx += 1
 
     def set_cur_milestone(self, k):
@@ -109,7 +113,7 @@ class ProgressiveGiraffeGenerator(nn.Module):
             self.activations[self.act_idx] = True
             self.act_idx += 1
         powers, act = self.powers, self.activations
-        print_log('progressive giraffe activated powers={}'.format([k for k, a in zip(powers, act) if a]))
+        print_log('progressive {} gen active powers={}'.format(self.name, [k for k, a in zip(powers, act) if a]))
 
     def set_milestones(self, milestones):
         if milestones is not None:
@@ -120,7 +124,7 @@ class ProgressiveGiraffeGenerator(nn.Module):
             self.act_idx = n_act
             self.activations = [True] * n_act + [False] * (self.n_powers - n_act)
             powers, act = self.powers, self.activations
-            print_log('progressive giraffe activated powers={}'.format([k for k, a in zip(powers, act) if a]))
+            print_log('progressive {} gen active powers={}'.format(self.name, [k for k, a in zip(powers, act) if a]))
         else:
             self.act_milestones = [-1] * self.n_powers
             self.act_idx = self.n_powers

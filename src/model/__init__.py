@@ -6,7 +6,7 @@ from utils.logger import print_log
 from utils import path_exists
 
 
-DEFAULT_IMG_SIZE = (64, 64)
+IMG_SIZE = (64, 64)
 
 
 def create_model(cfg, img_size):
@@ -23,12 +23,20 @@ def get_model(name):
     }[name]
 
 
-def load_model_from_path(model_path, device=None):
+def load_model_from_path(model_path, device=None, **overload_mkwargs):
     if device is None:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     checkpoint = torch.load(path_exists(model_path), map_location=device.type)
-    if 'img_size' not in checkpoint['model_kwargs']:  # XXX retro-compatibility
-        checkpoint['model_kwargs']['img_size'] = DEFAULT_IMG_SIZE
+    mkwargs = checkpoint['model_kwargs']
+    if 'img_size' not in mkwargs:  # XXX retro-compatibility
+        mkwargs['img_size'] = IMG_SIZE
+    if len(overload_mkwargs) > 0:
+        for k, v in overload_mkwargs.items():
+            if isinstance(v, dict):
+                mkwargs[k].update(v)
+            else:
+                mkwargs[k] = v
+
     model = get_model(checkpoint['model_name'])(**checkpoint['model_kwargs']).to(device)
     model.load_state_dict(checkpoint['model_state'])
     model.set_cur_epoch(checkpoint['epoch'])

@@ -4,7 +4,7 @@ from PIL import Image
 
 import torch
 from torch.utils.data.dataset import Dataset as TorchDataset
-from torchvision.transforms import ToTensor, Compose, Resize, RandomCrop, CenterCrop
+from torchvision.transforms import ToTensor, Compose, Resize, CenterCrop, RandomHorizontalFlip
 
 from utils import path_exists, get_files_from
 from utils.image import IMG_EXTENSIONS
@@ -12,9 +12,13 @@ from utils.path import DATASETS_PATH, PROJECT_PATH
 from .torch_transforms import SquarePad, Resize as ResizeCust
 
 
+RANDOM_FLIP = True
+
+
 class AbstractFolderDataset(TorchDataset):
     root = DATASETS_PATH
     name = NotImplementedError
+    img_size = NotImplementedError
     n_channels = 3
 
     def __init__(self, split, img_size, **kwargs):
@@ -31,6 +35,7 @@ class AbstractFolderDataset(TorchDataset):
         self.resize_mode = kwargs.pop('resize_mode', 'pad')
         assert self.resize_mode in ['crop', 'pad']
         self.padding_mode = kwargs.pop('padding_mode', 'edge')
+        self.random_flip = kwargs.pop('random_flip', RANDOM_FLIP) and self.split == 'train'
         assert len(kwargs) == 0, kwargs
 
     def __len__(self):
@@ -47,8 +52,8 @@ class AbstractFolderDataset(TorchDataset):
         size = self.img_size[0]
         if self.resize_mode == 'pad':
             tsfs = [ResizeCust(size, fit_inside=True), SquarePad(padding_mode=self.padding_mode), ToTensor()]
-        elif self.random_crop:
-            tsfs = [Resize(size), RandomCrop(size), ToTensor()]
         else:
             tsfs = [Resize(size), CenterCrop(size), ToTensor()]
+        if self.random_flip:
+            tsfs = [RandomHorizontalFlip()] + tsfs
         return Compose(tsfs)

@@ -16,7 +16,7 @@ from utils.pytorch import get_torch_device
 
 BATCH_SIZE = 32
 N_WORKERS = 4
-PRINT_ITER = 10
+PRINT_ITER = 2
 SAVE_GIF = True
 warnings.filterwarnings("ignore")
 
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     m.eval()
     print_log(f"Model {args.model} loaded: input img_size is set to {m.init_kwargs['img_size']}")
 
-    data = get_dataset(args.input)(split="train", img_size=m.init_kwargs['img_size'])
+    data = get_dataset(args.input)(split='test', img_size=m.init_kwargs['img_size'])
     loader = DataLoader(data, batch_size=BATCH_SIZE, num_workers=N_WORKERS, shuffle=False)
     print_log(f"Found {len(data)} images in the folder")
 
@@ -42,17 +42,17 @@ if __name__ == '__main__':
     n_zeros = int(np.log10(len(data) - 1)) + 1
     for j, (inp, _) in enumerate(loader):
         imgs = inp['imgs'].to(device)
-        meshes = m.predict_meshes(m.encoder(imgs))
+        meshes = m.predict_mesh_pose_bkg(imgs)[0]
 
-        B, d, e = len(imgs), m.T_cam[-1], np.mean(m.elev_range)
+        B, d, e = len(imgs), m.T_init[-1], np.mean(m.elev_range)
         for k in range(B):
             nb = j*B + k
             if nb % PRINT_ITER == 0:
                 print_log(f"Reconstructed {nb} images...")
-            i = str(nb).zfill(n_zeros)
-            mcenter = normalize(meshes[k], mode=None, center=True, use_center_mass=True)
-            save_mesh_as_obj(mcenter, out / f'{i}_mesh.obj')
+            name = data.input_files[nb].stem
+            mcenter = normalize(meshes[k])
+            save_mesh_as_obj(mcenter, out / f'{name}_mesh.obj')
             if SAVE_GIF:
-                save_mesh_as_gif(mcenter, out / f'{i}_mesh.gif', n_views=100, dist=d, elev=e, renderer=m.renderer)
+                save_mesh_as_gif(mcenter, out / f'{name}_mesh.gif', n_views=50, dist=d, elev=e, renderer=m.renderer)
 
     print_log("Done!")

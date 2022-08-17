@@ -1,8 +1,11 @@
-import os
-import socket
 
 from contextlib import contextmanager
 from matplotlib import pyplot as plt
+import PIL
+import os
+import socket
+
+import numpy as np
 import pandas as pd
 import torch
 from torch.nn import functional as F
@@ -21,6 +24,8 @@ class Visualizer:
         if viz_port is not None:
             import visdom
             os.environ["http_proxy"] = ""  # XXX set to solve proxy issues
+            if viz_port == 8888 and socket.gethostname() != 'eole':
+                viz_port = 8892
             visualizer = visdom.Visdom(port=viz_port, env=f'{run_dir.parent.name}_{run_dir.name}')
             visualizer.delete_env(visualizer.env)  # Clean env before plotting
             print_log(f"Visualizer initialised at {viz_port}")
@@ -102,11 +107,21 @@ def plot_bar(df, title, figsize=(10, 5.625), unit_yaxis=False):
 
 
 def plot_img_grid(images, nrow=1, ncol=None, scale=4):
-    if len(images.shape) == 4 and images.shape[-1] > 3:  # images are BCHW
+    if isinstance(images, (list, tuple)):
+        assert len(images) > 0
+        if isinstance(images[0], PIL.Image.Image):
+            images = list(map(np.asarray, images))
+        elif isinstance(images[0], torch.Tensor):
+            images = [i.cpu().numpy() for i in images]
+        if images[0].shape[-1] > 3:   # XXX images are CHW
+            images = [i.permute(1, 2, 0) for i in images]
+
+    elif len(images.shape) == 4 and images.shape[-1] > 3:  # images are BCHW
         if isinstance(images, torch.Tensor):
             images = images.permute(0, 2, 3, 1).clamp(0, 1)
         else:
             images = images.transpose(0, 2, 3, 1).clip(0, 1)
+
     if ncol is None:
         ncol = (len(images) - 1) // nrow + 1
     gridspec_kw = {"wspace": 0.05, "hspace": 0.05}

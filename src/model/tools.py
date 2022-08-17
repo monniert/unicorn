@@ -39,25 +39,39 @@ def conv1x1(in_planes, out_planes, stride=1):
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
 
 
-def create_mlp(in_ch, out_ch, n_units=N_UNITS, n_layers=N_LAYERS, kaiming_init=True, zero_last_init=False):
+def deconv4x4(in_planes, out_planes, stride=2, padding=1):
+    return nn.ConvTranspose2d(in_planes, out_planes, kernel_size=4, stride=stride, padding=padding)
+
+
+def create_mlp(in_ch, out_ch, n_units=N_UNITS, n_layers=N_LAYERS, kaiming_init=True, zero_last_init=False,
+               bias_last=True, with_norm=False, dropout=False):
     if n_layers > 0:
-        seq = [nn.Linear(in_ch, n_units), nn.ReLU(True)]
+        seq = [nn.Linear(in_ch, n_units)]
+        if with_norm:
+            seq.append(nn.BatchNorm1d(n_units))
+        seq.append(nn.ReLU(True))
         for _ in range(n_layers - 1):
-            seq += [nn.Linear(n_units, n_units), nn.ReLU(True)]
-        seq += [nn.Linear(n_units, out_ch)]
+            if dropout:
+                seq.append(nn.Dropout(dropout))
+            seq.append(nn.Linear(n_units, n_units))
+            if with_norm:
+                seq.append(nn.BatchNorm1d(n_units))
+            seq.append(nn.ReLU(True))
+        seq += [nn.Linear(n_units, out_ch, bias=bias_last)]
     else:
-        seq = [nn.Linear(in_ch, out_ch)]
+        seq = [nn.Linear(in_ch, out_ch, bias=bias_last)]
     mlp = nn.Sequential(*seq)
 
     if kaiming_init:
         mlp.apply(kaiming_weights_init)
     if zero_last_init:
         with torch.no_grad():
-            if zero_last_init is True:
+            if isinstance(zero_last_init, bool):
                 mlp[-1].weight.zero_()
-            else:
+            else:  # We interpret as std
                 mlp[-1].weight.normal_(mean=0, std=zero_last_init)
-            mlp[-1].bias.zero_()
+            if bias_last:
+                mlp[-1].bias.zero_()
     return mlp
 
 
@@ -112,6 +126,8 @@ def create_upsample_layer(name):
     if name == 'nn':
         return nn.Upsample(scale_factor=2)
     elif name == 'bilinear':
+        return nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
+    elif name == 'bilinear_blur':
         return nn.Sequential(nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False), Blur())
     else:
         raise NotImplementedError
@@ -130,11 +146,11 @@ def init_rotations(init_type='uniform', N=None, n_elev=None, n_azim=None, elev_r
         ab, ae = azim_range if azim_range is not None else (-180, 180)
         er, ar = ee - eb, ae - ab
         elev = torch.Tensor([k*er/n_elev + eb - er/(2*n_elev) for k in range(1, n_elev + 1)])  # [-60, 0, 60]
-        if ar == 360:
+        if ar == 360 and n_azim > 1:  # need a special case to avoid duplicated init at -180/180
             azim = torch.Tensor([k*ar/n_azim + ab for k in range(n_azim)])  # e.g. [-180, -90, 0, 90]
         else:
             azim = torch.Tensor([k*ar/n_azim + ab - ar/(2*n_azim) for k in range(1, n_azim + 1)])  # [-60, 0, 60]
-        elev, azim = map(lambda t: t.flatten(), torch.meshgrid(elev, azim))
+        elev, azim = map(lambda t: t.flatten(), torch.meshgrid(elev, azim, indexing='ij'))
         roll = torch.zeros(elev.shape)
         print_log(f'init_rotations: azim={azim.tolist()}, elev={elev.tolist()}, roll={roll.tolist()}')
         R_init = torch.stack([azim, elev, roll], dim=1)

@@ -4,18 +4,22 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
+from pytorch3d.ops.marching_cubes import marching_cubes_naive
 from pytorch3d.renderer import (FoVPerspectiveCameras, RasterizationSettings, MeshRenderer, MeshRasterizer, BlendParams,
                                 PointLights, DirectionalLights, Materials, look_at_view_transform,
-                                PerspectiveCameras)
+                                PerspectiveCameras, TexturesVertex)
+from pytorch3d.renderer.mesh.shader import SoftPhongShader
 from pytorch3d.renderer.mesh.shading import phong_shading, flat_shading, gouraud_shading
-from pytorch3d.renderer.mesh.rasterizer import Fragments
+from pytorch3d.structures import Meshes
 
 from .pytorch3d_monkey import AmbientLights
 from utils.image import save_gif
 from utils.pytorch import get_torch_device
 
+
 LAYERED_SHADER = True
 SHADING_TYPE = 'raw'
+VIZ_IMG_SIZE = 256
 
 
 class Renderer(nn.Module):
@@ -37,8 +41,6 @@ class Renderer(nn.Module):
             s_kwargs['shading_type'] = kwargs.get('shading_type', SHADING_TYPE)
         else:
             shader_cls = SoftPhongShaderPlus
-            s_kwargs['z_detach'] = kwargs.get('z_detach', False)
-            s_kwargs['eps'] = kwargs.get('eps', 1e-10)
 
         # approximative differentiable renderer for training
         raster_settings = RasterizationSettings(image_size=img_size, blur_radius=np.log(1./1e-4-1.)*blend_params.sigma,
@@ -47,7 +49,7 @@ class Renderer(nn.Module):
                                      shader_cls(**s_kwargs))
 
         # exact anti-aliased rendering for visualization
-        viz_size = kwargs.get('viz_size', (256, 256))
+        viz_size = kwargs.get('viz_size', (VIZ_IMG_SIZE, VIZ_IMG_SIZE))
         s_kwargs['blend_params'] = BlendParams(background_color=blend_kwargs['background_color'], sigma=0)
         raster_settings = RasterizationSettings(image_size=(viz_size[0]*2, viz_size[1]*2), blur_radius=0.0,
                                                 faces_per_pixel=1, perspective_correct=False)
@@ -99,6 +101,19 @@ class Renderer(nn.Module):
         self.lights.ambient_color = self.lights._ambient_color
         self.lights.diffuse_color = self.lights._diffuse_color
         self.lights.specular_color = self.lights._specular_color
+
+    @torch.no_grad()
+    def compute_vertex_visibility(self, meshes, R, T):
+        fragments = self.viz_renderer.rasterizer(meshes, R=R, T=T)
+        pix_to_face = fragments.pix_to_face
+        packed_faces = meshes.faces_packed()
+        packed_verts = meshes.verts_packed()
+        visibility_map = torch.zeros(packed_verts.shape[0])
+        visible_faces = pix_to_face.unique()[1:]  # we remove the -1 index
+        visible_verts_idx = packed_faces[visible_faces]
+        unique_visible_verts_idx = torch.unique(visible_verts_idx)
+        visibility_map[unique_visible_verts_idx] = 1.0
+        return visibility_map.view(len(meshes), -1).bool()
 
 
 class VizMeshRenderer(MeshRenderer):
@@ -187,25 +202,10 @@ def layered_rgb_blend(colors, fragments, blend_params, clip_inside=True, debug=F
         return pixel_colors.permute(0, 3, 1, 2)  # BCHW
 
 
-class SoftPhongShaderPlus(nn.Module):
-    """
-    We rewrite pytorch3d.renderer.mesh.shader.SoftPhongShader class to handle:
-        - detaching gradients for z
-        - passing eps as argument
-        - debugging
-    """
-    def __init__(self, device=None, cameras=None, lights=None, materials=None, blend_params=None, z_detach=False,
-                 eps=1e-10, debug=False):
-        super().__init__()
-        self.lights = lights if lights is not None else DirectionalLights(device=device)
-        self.materials = (
-            materials if materials is not None else Materials(device=device)
-        )
-        self.cameras = cameras
-        self.blend_params = blend_params if blend_params is not None else BlendParams()
-        self.z_detach = z_detach
-        self.eps = eps
-        self.debug = debug
+class SoftPhongShaderPlus(SoftPhongShader):
+    """Rewriting to permute output tensor + working `to` method for multi-gpus"""
+    def forward(self, fragments, meshes, **kwargs):
+        return super().forward(fragments, meshes, **kwargs).permute(0, 3, 1, 2)
 
     def to(self, device):
         cameras = self.cameras
@@ -214,68 +214,6 @@ class SoftPhongShaderPlus(nn.Module):
         self.materials = self.materials.to(device)
         self.lights = self.lights.to(device)
         return self
-
-    def forward(self, fragments, meshes, **kwargs):
-        cameras = kwargs.get("cameras", self.cameras)
-        if cameras is None:
-            msg = "Cameras must be specified either at initialization \
-                or in the forward pass of SoftPhongShader"
-            raise ValueError(msg)
-
-        texels = meshes.sample_textures(fragments)
-        lights = kwargs.get("lights", self.lights)
-        materials = kwargs.get("materials", self.materials)
-        blend_params = kwargs.get("blend_params", self.blend_params)
-        colors = phong_shading(
-            meshes=meshes,
-            fragments=fragments,
-            texels=texels,
-            lights=lights,
-            cameras=cameras,
-            materials=materials,
-        )
-        znear = kwargs.get("znear", getattr(cameras, "znear", 1.0))
-        zfar = kwargs.get("zfar", getattr(cameras, "zfar", 100.0))
-        if self.z_detach:
-            fragments = Fragments(pix_to_face=fragments.pix_to_face, zbuf=fragments.zbuf.detach(),
-                                  bary_coords=fragments.bary_coords, dists=fragments.dists)
-        return softmax_rgb_blend_plus(colors, fragments, blend_params, znear=znear, zfar=zfar, eps=self.eps,
-                                      debug=self.debug)
-
-
-def softmax_rgb_blend_plus(colors, fragments, blend_params, znear=1, zfar=100, eps=1e-10, debug=False):
-    N, H, W, K = fragments.pix_to_face.shape
-    device = fragments.pix_to_face.device
-    pixel_colors = torch.ones((N, H, W, 4), dtype=colors.dtype, device=colors.device)
-    background_ = blend_params.background_color
-    if not isinstance(background_, torch.Tensor):
-        background = torch.tensor(background_, dtype=torch.float32, device=device)
-    else:
-        background = background_.to(device)
-
-    mask = fragments.pix_to_face >= 0
-    prob_map = torch.sigmoid(-fragments.dists / blend_params.sigma) * mask
-    alpha = torch.prod((1.0 - prob_map), dim=-1)
-    if torch.is_tensor(zfar):
-        zfar = zfar[:, None, None, None]
-    if torch.is_tensor(znear):
-        znear = znear[:, None, None, None]
-
-    z_inv = (zfar - fragments.zbuf) / (zfar - znear) * mask
-    z_inv_max = torch.max(z_inv, dim=-1).values[..., None].clamp(min=1e-7)
-    weights_num = prob_map * torch.exp((z_inv - z_inv_max) / blend_params.gamma)
-
-    delta = torch.exp((eps - z_inv_max) / blend_params.gamma).clamp(min=1e-7)
-    denom = weights_num.sum(dim=-1)[..., None] + delta
-    weighted_colors = (weights_num[..., None] * colors).sum(dim=-2)
-    weighted_background = delta * background
-    pixel_colors[..., :3] = (weighted_colors + weighted_background) / denom
-    pixel_colors[..., 3] = 1.0 - alpha
-
-    if debug:
-        return colors, prob_map, z_inv, weights_num, delta, pixel_colors.permute(0, 3, 1, 2)
-    else:
-        return pixel_colors.permute(0, 3, 1, 2)
 
 
 @torch.no_grad()
@@ -319,8 +257,18 @@ def render_rotated_views(mesh, img_size=256, n_views=50, elev=30, dist=2.5, R=No
     return rec
 
 
-def save_mesh_as_gif(mesh, filename, img_size=256, n_views=50, elev=30, dist=2.5, R=None, T=None, bkg=None,
+def save_mesh_as_gif(mesh, filename, img_size=256, n_views=50, elev=30, dist=2.732, R=None, T=None, bkg=None,
                      renderer=None, rend_kwargs=None, eye_light=False):
     imgs = render_rotated_views(mesh, img_size, n_views, elev, dist, R=R, T=T, bkg=bkg, renderer=renderer,
                                 rend_kwargs=rend_kwargs, eye_light=eye_light)
     save_gif(imgs, filename)
+
+
+def save_voxel_as_gif(voxel, filename, **kwargs):
+    device = kwargs.get('device', get_torch_device())
+    voxel = voxel if len(voxel.shape) == 4 else voxel[None]
+    assert voxel.size(0) == 1
+    verts, faces = [t[0] for t in marching_cubes_naive(voxel.float().to(device))]
+    verts = (verts / verts.abs().max()) * 0.5
+    mesh = Meshes(verts[None], faces[None], TexturesVertex(verts_features=torch.ones(verts.shape)[None] * 0.8))
+    save_mesh_as_gif(mesh, filename, **kwargs)

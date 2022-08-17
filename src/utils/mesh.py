@@ -15,21 +15,26 @@ from pytorch3d.utils import ico_sphere
 import torch
 
 
-def normalize(meshes, mode='unit_sphere', center=False, inplace=False, use_center_mass=False):
+EPS = 1e-4
+
+
+def normalize(meshes, center=True, scale_mode='unit_cube', inplace=False, use_center_mass=False):
     if center:
         if use_center_mass:
-            offsets = sample_points(meshes, 100000)[0].mean(0)
+            offsets = sample_points(meshes, 100000).mean(1)
         else:
-            offsets = torch.cat([v.mean(0)[None].expand(v.shape[0], -1) for v in meshes.verts_list()], dim=0)
+            offsets = 0.5 * (meshes.verts_padded().max(1)[0] + meshes.verts_padded().min(1)[0])
+        # meshes.offset_vert requires tensor of size (all_V, 3), while offsets is (B, 3)
+        NVs = meshes.num_verts_per_mesh()
+        offsets = torch.cat([offset[None].expand(nv, -1) for offset, nv in zip(offsets, NVs)], dim=0)
         meshes = meshes.offset_verts_(-offsets) if inplace else meshes.offset_verts(-offsets)
 
-    if mode == 'none' or mode is None:
-        return meshes
-
-    if mode == 'unit_sphere':
+    if scale_mode == 'none' or scale_mode is None:
+        scales = 1.
+    elif scale_mode == 'unit_cube':
+        scales = meshes.verts_padded().abs().flatten(1).max(1)[0] * 2  # [-0.5, 0.5]^3
+    elif scale_mode == 'unit_sphere':
         scales = meshes.verts_padded().norm(dim=2).max(1)[0]
-    elif mode == 'unit_cube':
-        scales = meshes.verts_padded().abs().flatten(1).max(1)[0]
     else:
         raise NotImplementedError
     return meshes.scale_verts_(1 / scales) if inplace else meshes.scale_verts(1 / scales)
@@ -42,7 +47,7 @@ def repeat(mesh, N):
     """
     assert N >= 1
     if N == 1:
-        return mesh.clone()
+        return mesh
 
     new_verts_list, new_faces_list = [], []
     for _ in range(N):
@@ -147,9 +152,11 @@ def save_mesh_as_obj(mesh, filename):
         txt = mesh.textures
         save_obj(filename, verts, faces, verts_uvs=txt.verts_uvs_padded()[0], faces_uvs=txt.faces_uvs_padded()[0],
                  texture_map=txt.maps_padded()[0])
-    else:
+    elif isinstance(mesh.textures, TexturesVertex):
         verts_rgb = mesh.textures.verts_features_list()[0].clamp(0, 1)
         save_obj(filename, verts, faces, verts_rgb=verts_rgb)
+    else:
+        save_obj(filename, verts, faces)
 
 
 def convert_textures_uv_to_vertex(textures_uv, meshes):

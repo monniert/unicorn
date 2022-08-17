@@ -40,6 +40,9 @@ then
     mv cachedir/p3d/data/car_val.mat cachedir/p3d/data/car_test.mat  # XXX renamed to correspond to the real test split
     mv cachedir/p3d datasets/pascal_3d/ucmr_anno
     rm -r cachedir
+    echo "done, start downloading UNICORN annotations (3D shape ground-truth)..."
+    wget https://imagine.enpc.fr/~monniert/UNICORN/data/unicorn_anno.zip
+    unzip unicorn_anno.zip && rm unicorn_anno.zip && mv unicorn_anno datasets/pascal_3d/unicorn_anno
     echo "done"
 
 elif [ $ds_id == 3 ]

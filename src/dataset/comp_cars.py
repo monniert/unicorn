@@ -5,22 +5,29 @@ from PIL import Image
 import numpy as np
 import torch
 from torch.utils.data.dataset import Dataset as TorchDataset
-from torchvision.transforms import ToTensor, Compose, Resize, RandomCrop, CenterCrop
+from torchvision.transforms import ToTensor, Compose, Resize, CenterCrop, RandomHorizontalFlip
 
 from utils import path_exists, get_files_from, use_seed
-from utils.path import DATASETS_PATH
+from utils.path import DATASETS_PATH, TMP_PATH
 from .torch_transforms import SquarePad, Resize as ResizeCust
+
+
+RANDOM_FLIP = True
 
 
 class CompCarsDataset(TorchDataset):
     root = DATASETS_PATH
     name = 'comp_cars'
+    img_size = NotImplementedError
     n_channels = 3
 
     def __init__(self, split, img_size, **kwargs):
         kwargs = deepcopy(kwargs)
         self.split = split
-        self.data_path = path_exists(DATASETS_PATH / self.name / 'images')
+        try:
+            self.data_path = path_exists(DATASETS_PATH / self.name / 'images')
+        except FileNotFoundError:
+            self.data_path = path_exists(TMP_PATH / 'datasets' / self.name / 'images')
         self.input_files = get_files_from(self.data_path, ['jpg'], recursive=True, sort=True)
         if self.split in ['val', 'test']:  # XXX images are sorted by model so we shuffle except first 10
             with use_seed(123):
@@ -32,7 +39,7 @@ class CompCarsDataset(TorchDataset):
         self.resize_mode = kwargs.pop('resize_mode', 'pad')
         assert self.resize_mode in ['crop', 'pad']
         self.padding_mode = kwargs.pop('padding_mode', 'edge')
-        self.random_crop = kwargs.pop('random_crop', False) and split == 'train'
+        self.random_flip = kwargs.pop('random_flip', RANDOM_FLIP) and self.split == 'train'
         assert len(kwargs) == 0, kwargs
 
     def __len__(self):
@@ -49,8 +56,8 @@ class CompCarsDataset(TorchDataset):
         size = self.img_size[0]
         if self.resize_mode == 'pad':
             tsfs = [ResizeCust(size, fit_inside=True), SquarePad(padding_mode=self.padding_mode), ToTensor()]
-        elif self.random_crop:
-            tsfs = [Resize(size), RandomCrop(size), ToTensor()]
         else:
             tsfs = [Resize(size), CenterCrop(size), ToTensor()]
+        if self.random_flip:
+            tsfs = [RandomHorizontalFlip()] + tsfs
         return Compose(tsfs)

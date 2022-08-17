@@ -10,6 +10,7 @@ model:
     deform_fields:
       powers: [2, 8, 32]
       milestones: [14, 84, 154]
+      n_field_units: 512
     texture_uv:
       img_size: 64
       powers: [2, 8, 32, 128]

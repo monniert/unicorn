@@ -10,7 +10,6 @@ model:
     scale: 0.6
     use_mean_txt: True
     deform_fields:
-      bias_last: False
       powers: [2, 8, 64]
       milestones: [175, 350, 525]
     texture_uv:

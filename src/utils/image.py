@@ -12,6 +12,7 @@ from . import path_exists, path_mkdir, get_files_from
 from .logger import print_info, print_warning
 
 
+os.environ['IMAGEIO_FFMPEG_EXE'] = '/usr/bin/ffmpeg'  # XXX pytorch's ffmpeg install does not support H.264 format
 IMG_EXTENSIONS = ['jpeg', 'jpg', 'JPG', 'png', 'ppm', 'JPEG']
 MAX_GIF_SIZE = 64
 
@@ -40,8 +41,11 @@ def convert_to_img(arr):
         arr = arr.permute(1, 2, 0).detach().cpu().numpy()
 
     assert isinstance(arr, np.ndarray)
-    if len(arr.shape) == 3 and arr.shape[2] == 1:
-        arr = arr[:, :, 0]
+    if len(arr.shape) == 3:
+        if arr.shape[0] <= 3:  # XXX CHW to HWC
+            arr = arr.transpose(1, 2, 0)
+        if arr.shape[2] == 1:  # XXX HW1 to HW
+            arr = arr[:, :, 0]
     if np.issubdtype(arr.dtype, np.floating):
         arr = (arr.clip(0, 1) * 255)
     return Image.fromarray(arr.astype(np.uint8)).convert('RGB')
@@ -91,15 +95,25 @@ def save_video(path, name, in_ext='jpg', as_gif=False, fps=24, quality=8):
     shutil.move(name, str(path.parent / name))
 
 
+def draw_border(img, color, width):
+    a = np.asarray(img)
+    for k in range(width):
+        a[k, :] = color
+        a[-k-1, :] = color
+        a[:, k] = color
+        a[:, -k-1] = color
+    return Image.fromarray(a)
+
+
 def square_bbox(bbox):
     """Converts a bbox to have a square shape by increasing size along non-max dimension."""
-    sq_bbox = list(map(round, bbox))
-    width, height = sq_bbox[2] - sq_bbox[0] + 1, sq_bbox[3] - sq_bbox[1] + 1
+    sq_bbox = [int(round(x)) for x in bbox]  # convert to int
+    width, height = sq_bbox[2] - sq_bbox[0], sq_bbox[3] - sq_bbox[1]
     maxdim = max(width, height)
-    offset_w, offset_h = [round((maxdim - s) / 2.0) for s in [width, height]]
+    offset_w, offset_h = [int(round((maxdim - s) / 2.0)) for s in [width, height]]
 
     sq_bbox[0], sq_bbox[1] = sq_bbox[0] - offset_w, sq_bbox[1] - offset_h
-    sq_bbox[2], sq_bbox[3] = sq_bbox[0] + maxdim - 1, sq_bbox[1] + maxdim - 1
+    sq_bbox[2], sq_bbox[3] = sq_bbox[0] + maxdim, sq_bbox[1] + maxdim
     return sq_bbox
 
 

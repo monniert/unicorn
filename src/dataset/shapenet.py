@@ -8,14 +8,14 @@ from torch.utils.data.dataset import Dataset as TorchDataset
 from torchvision.transforms.functional import to_tensor
 
 from utils import path_exists
-from utils.path import DATASETS_PATH
+from utils.path import DATASETS_PATH, TMP_PATH
 
 
 class ShapeNetDataset(TorchDataset):
     root = DATASETS_PATH
     name = 'shapenet_nmr'
-    n_channels = 3
     img_size = (64, 64)
+    n_channels = 3
     n_tot_views = 24
     n_views = 1
 
@@ -26,6 +26,11 @@ class ShapeNetDataset(TorchDataset):
         self.flatten_views = kwargs.pop('flatten_views', True)
         self.include_test = kwargs.pop('include_test', False)
         assert len(kwargs) == 0
+
+        try:
+            self.data_path = path_exists(DATASETS_PATH / self.name)
+        except FileNotFoundError:
+            self.data_path = path_exists(TMP_PATH / 'datasets' / self.name)
 
         with open(self.data_path / 'metadata.yaml') as fp:
             cfg = yaml.load(fp, Loader=yaml.FullLoader)
@@ -46,10 +51,6 @@ class ShapeNetDataset(TorchDataset):
         self._R_row_adj = torch.Tensor([[0, 0, -1], [0, 1, 0], [1, 0, 0]])
         self._pc_adj = torch.Tensor([[0, 0, 1], [0, 1, 0], [-1, 0, 0]])
 
-    @property
-    def data_path(self):
-        return path_exists(DATASETS_PATH / self.name)
-
     def get_models(self, split, categories):
         models = []
         for c in categories:
@@ -64,10 +65,12 @@ class ShapeNetDataset(TorchDataset):
         return self.split == 'train' and self.n_views == 1
 
     def __len__(self):
-        if not (self.is_sv_train and self.flatten_views):
-            return self.n_models
-        else:
+        if self.split == 'val':
+            return 32  # XXX we use only 32 instances for fast validation
+        elif self.is_sv_train and self.flatten_views:
             return self.n_models * self.n_tot_views
+        else:
+            return self.n_models
 
     def __getitem__(self, idx):
         if self.is_sv_train and self.flatten_views:

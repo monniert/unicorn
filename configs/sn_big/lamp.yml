@@ -14,7 +14,6 @@ model:
       powers: [2, 8, 64]
       milestones: [41, 246, 452]
       n_field_units: 512
-      bias_last: False
     texture_uv:
       img_size: 64
       min_features: 64

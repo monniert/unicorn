@@ -17,7 +17,7 @@ from utils import use_seed, path_exists, path_mkdir, load_yaml
 from utils.image import ImageLogger
 from utils.logger import create_logger, print_log, print_warning, Verbose
 from utils.metrics import Metrics, MeshEvaluator
-from utils.path import CONFIGS_PATH, RUNS_PATH
+from utils.path import CONFIGS_PATH, RUNS_PATH, TMP_PATH
 from utils.plot import plot_lines, Visualizer
 from utils.pytorch import get_torch_device, torch_to
 
@@ -59,17 +59,17 @@ class Trainer:
         names = self.model.loss_names if hasattr(self.model, 'loss_names') else ['loss']
         names += [f'prop_head{k}' for k in range(len(self.model.prop_heads))]
         self.train_metrics = Metrics(*['time/img'] + names, log_file=self.run_dir / 'train_metrics.tsv', append=append)
-        self.val_metrics = Metrics('loss_val', log_file=self.run_dir / 'val_metrics.tsv', append=append)
         self.val_scores = MeshEvaluator(['chamfer-L1', 'chamfer-L1-ICP'], self.run_dir / 'val_scores.tsv',
                                         fast_cpu=True, append=append)
         samples = next(iter(self.val_loader if len(self.val_loader) > 0 else self.train_loader))[0]
         self.viz_samples = valmap(lambda t: t.to(self.device)[:N_VIZ_SAMPLES], samples)
         self.rec_logger = ImageLogger(self.run_dir / 'reconstructions', target_images=self.viz_samples)
         if self.with_training:  # no visualizer if eval only
-            viz_port = cfg["training"].get('visualizer_port') if self.is_master else None
+            viz_port = cfg["training"].get('visualizer_port') if (TMP_PATH is None and self.is_master) else None
             self.visualizer = Visualizer(viz_port, self.run_dir)
         else:
             self.visualizer = Visualizer(None, self.run_dir)
+        self.extensive_eval = cfg['training'].get('extensive_eval', False)
 
     @property
     def with_training(self):
@@ -84,7 +84,10 @@ class Trainer:
         assert not (pretrained is not None and resume is not None)
         tag = pretrained or resume
         if tag is not None:
-            path = path_exists(RUNS_PATH / self.dataset_name / tag / 'model.pkl')
+            try:
+                path = path_exists(RUNS_PATH / self.dataset_name / tag / 'model.pkl')
+            except FileNotFoundError:
+                path = path_exists(TMP_PATH / 'runs' / self.dataset_name / tag / 'model.pkl')
             checkpoint = torch.load(path, map_location=self.device)
             if self.multi_gpu:
                 self.model.module.load_state_dict(checkpoint["model_state"])
@@ -121,8 +124,7 @@ class Trainer:
 
                 if cur_iter % self.val_stat_interval == 0 and self.is_master:
                     if len(self.val_loader.dataset) > 10:
-                        self.run_val()
-                        self.log_val_metrics(cur_iter, epoch, batch)
+                        self.run_val_and_log(cur_iter, epoch, batch)
                     self.log_visualizations(cur_iter)
                     self.save(epoch=epoch, batch=batch)
                 cur_iter += 1
@@ -156,15 +158,13 @@ class Trainer:
         self.train_metrics.update({f'prop_head{i}': p for i, p in enumerate(self.model.prop_heads)}, N=B)
 
     @torch.no_grad()
-    def run_val(self):
-        self.model.eval()
+    def run_val_and_log(self, it, epoch, batch):
         model = self.model.module if self.multi_gpu else self.model
-        for images, labels in self.val_loader:
-            loss, pred = model(torch_to(images, self.device), return_meshes=True)
-            loss = (loss if isinstance(loss, torch.Tensor) else loss['total']).item()
-            self.val_metrics.update('loss_val', loss, N=len(pred))
-            self.val_scores.update(pred, torch_to(labels, self.device))
-            break  # XXX we only evaluate on the first batch for fast cpu
+        scores = model.quantitative_eval(self.val_loader, self.device, evaluator=self.val_scores)
+        print_log(LOG_FMT(epoch, self.n_epoches, batch, self.n_batches,
+                          "val_scores: " + ", ".join(["{}={:.4f}".format(k, v) for k, v in scores.items()])))
+        self.visualizer.upload_lineplot(it, list(scores.items()), title='val_scores')
+        self.val_scores.log_and_reset(it=it, epoch=epoch, batch=batch)
 
     def step(self, epoch, batch):
         self.model.step()
@@ -189,18 +189,10 @@ class Trainer:
             self.visualizer.upload_barplot(named_values, title='avg probability per head')
             named_values = [('max', self.model._prob_max), ('min', self.model._prob_min)]
             self.visualizer.upload_lineplot(it, named_values, title='probability statistics')
-        metrics.log_and_reset(it=it, epoch=epoch, batch=batch)
+        if hasattr(self.model, '_pose_temp'):
+            self.visualizer.upload_lineplot(it, [('val', self.model._pose_temp)], title='pose temperature')
 
-    def log_val_metrics(self, it, epoch, batch):
-        metrics = self.val_metrics
-        print_log(LOG_FMT(epoch, self.n_epoches, batch, self.n_batches, f'val_metrics: {metrics}'))
-        self.visualizer.upload_lineplot(it, metrics.get_named_values(), title='val_metrics')
-        names, scores = self.val_scores.names, self.val_scores.compute()
-        print_log(LOG_FMT(epoch, self.n_epoches, batch, self.n_batches,
-                          "val_scores: " + ", ".join(["{}={:.4f}".format(k, v) for k, v in zip(names, scores)])))
-        self.visualizer.upload_lineplot(it, list(zip(names, scores)), title='val_scores')
-        self.val_metrics.log_and_reset(it=it, epoch=epoch, batch=batch)
-        self.val_scores.log_and_reset(it=it, epoch=epoch, batch=batch)
+        metrics.log_and_reset(it=it, epoch=epoch, batch=batch)
 
     @torch.no_grad()
     def log_visualizations(self, cur_iter):
@@ -231,12 +223,11 @@ class Trainer:
     @torch.no_grad()
     def save_metric_plots(self):
         self.model.eval()
-        df_train, df_val, df_scores = [m.read_log() for m in [self.train_metrics, self.val_metrics, self.val_scores]]
-        if len(df_train) == 0:
+        df, df_scores = [m.read_log() for m in [self.train_metrics, self.val_scores]]
+        if len(df) == 0:
             print_log('No metrics or plots to save')
             return None
 
-        df = df_train.join(df_val[['loss_val']], how="outer")
         loss_names = list(filter(lambda col: 'loss' in col, df.columns))
         plot_lines(df, loss_names, title="Loss").savefig(self.run_dir / "loss.pdf")
         if len(df_scores) > 0:
@@ -261,7 +252,8 @@ class Trainer:
 
         # qualitative
         out = path_mkdir(self.run_dir / 'quali_eval')
-        self.model.qualitative_eval(self.test_loader, self.device, path=out, N=32)
+        N = 64 if self.extensive_eval else 32
+        self.model.qualitative_eval(self.test_loader, self.device, path=out, N=N)
         print_log("Evaluation over")
 
 
@@ -285,7 +277,7 @@ if __name__ == '__main__':
     if (RUNS_PATH / dataset / args.tag).exists():
         run_dir = RUNS_PATH / dataset / args.tag
     else:
-        run_dir = path_mkdir(RUNS_PATH / dataset / args.tag)
+        run_dir = path_mkdir((RUNS_PATH if TMP_PATH is None else TMP_PATH / 'runs') / dataset / args.tag)
     create_logger(run_dir)
     shutil.copy(str(CONFIGS_PATH / args.config), str(run_dir))
 
@@ -299,3 +291,7 @@ if __name__ == '__main__':
     else:
         trainer = Trainer(cfg, run_dir, seed=seed)
         trainer.run(seed=seed)
+
+    if TMP_PATH is not None and run_dir != RUNS_PATH / dataset / args.tag:
+        shutil.copytree(str(run_dir), str(RUNS_PATH / dataset / args.tag))
+        shutil.rmtree(run_dir, ignore_errors=True)
