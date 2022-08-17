@@ -16,7 +16,7 @@ Share With Thy Neighbors:<br> Single-View Reconstruction by Cross-Instance Consi
 src="https://img.shields.io/badge/-Webpage-blue.svg?colorA=333&logo=html5" height=35em></a>
 <a href="https://arxiv.org/abs/2204.10310"><img 
 src="https://img.shields.io/badge/-Paper-blue.svg?colorA=333&logo=arxiv" height=35em></a>
-<a href="https://github.com/monniert/unicorn"><img 
+<a href="https://imagine.enpc.fr/~monniert/UNICORN/demo"><img 
 src="https://img.shields.io/badge/-Demo-blue.svg?colorA=333&logo=googlecolab" height=35em></a>
 <a href="https://imagine.enpc.fr/~monniert/UNICORN/ref.bib"><img 
 src="https://img.shields.io/badge/-BibTeX-blue.svg?colorA=333&logo=latex" height=35em></a>
@@ -164,7 +164,7 @@ The command will download one of the following models:
 <summary><b>Important notes :page_with_curl:</b></summary>
 
 1. :exclamation:<b>These small models correspond to an old version of the code</b>, with in particular less training iterations. We release 
-them for retrocompatibility and completeness, retrain them from scratch for a thorough comparison.
+them for retrocompatibility and completeness, retrain from scratch for a thorough comparison.
 2. it may happen that `gdown` hangs, if so you can download them manually with the gdrive links and move them to the `models` folder.
 
 </details>
@@ -216,8 +216,8 @@ Available configs are:
 - `moto.yml`, `horse_big.yml` for LSUN Motorbike dataset
 - `p3d_car.yml`, `p3d_car_big.yml` for Pascal3D+ Car dataset
 
-**:exclamation:NB: we advocate to always check the results after the first stage.** In particular for real complex cases like birds/horses, learning can fall 
-into bad minima with bad prototypical shapes. If so, relaunch the training using a different seed.
+**:exclamation:NB: we advocate to always check the results after the first stage.** In particular for cases like birds or horses, learning can fall 
+into bad minima with bad prototypical shapes. If so, relaunch with a different seed.
 </details>
 
 <details>
