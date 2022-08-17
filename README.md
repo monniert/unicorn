@@ -174,8 +174,8 @@ them for retrocompatibility and completeness, retrain them from scratch for a th
 
 ### 1. Demo - 3D reconstruction of car images :oncoming_automobile:
 
-![ex_car.png](./media/ex_car.png)
-![ex_rec.gif](./media/ex_rec.gif)
+![example_car.png](./media/example_car.png)
+![example_rec.gif](./media/example_rec.gif)
 
 You first need to download the car model (see above), then launch:
 
