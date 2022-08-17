@@ -39,7 +39,7 @@ This repository contains:
 - guidelines to train a model on a new dataset
 
 <details>
-<summary>If you find this code useful, don't forget to star the repo :star: and cite the paper :point_down:</summary>
+<summary>If you find this code useful, don't forget to <b>star the repo :star:</b> and <b>cite the paper :point_down:</b></summary>
 
 ```
 @inproceedings{monnier2022unicorn,
@@ -72,7 +72,7 @@ conda activate unicorn
 <details>
 <summary><b>Optional visualization :chart_with_downwards_trend:</b></summary>
 Some monitoring routines are implemented, you can use them by specifying your
-visdom port in the config file. You will need to install visdom from source beforehand
+visdom port in the config file. You will need to install visdom from source beforehand:
 
 ```
 git clone https://github.com/facebookresearch/visdom
@@ -163,8 +163,8 @@ The command will download one of the following models:
 <details>
 <summary><b>Important notes :page_with_curl:</b></summary>
 
-1. :exclamation:The small models released here correspond to an old version of the code with in particular less training iterations. We release 
-them for retrocompatibility and completeness, retrain them from scratch for a thorough comparison
+1. :exclamation:<b>These small models correspond to an old version of the code</b>, with in particular less training iterations. We release 
+them for retrocompatibility and completeness, retrain them from scratch for a thorough comparison.
 2. it may happen that `gdown` hangs, if so you can download them manually with the gdrive links and move them to the `models` folder.
 
 </details>
@@ -186,7 +186,7 @@ cuda=gpu_id model=car_big.pkl input=demo ./scripts/reconstruct.sh
 where `gpu_id` is a target cuda device id, `car_big.pkl` corresponds to a pretrained model, `demo` is a folder containing the target images.
 Reconstruction results (.obj + gif) will be saved in a folder `demo_rec`.
 
-► We also provide an [interactive demo ![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://imagine.enpc.fr/~monniert/UNICORN/demo)
+We also provide an [interactive demo ![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://imagine.enpc.fr/~monniert/UNICORN/demo)
 to reconstruct cars from single images.
 
 ### 2. Train models from scratch :runner:
@@ -247,8 +247,8 @@ On a single GPU, the approximate training times are:
 
 A model is evaluated at the end of training. To evaluate a pretrained model (e.g. `sn_big_airplane.pkl`):
 
-1. move the model to a fake folder in `runs/${DATASET}` (e.g. `shapenet_nmr/airplane`) and rename it `model.pkl`
-2. point to the fake tag to resume from in the config (e.g. `resume: airplane` in `airplane.yml`)
+1. move the model to a fake folder and rename it `model.pkl` (e.g. in `runs/shapenet_nmr/airplane_big`)
+2. point to the fake tag to resume from in the config (e.g. `resume: airplane_big` in `airplane.yml`)
 3. launch the training (and thus evaluation) with:
 
 ```
