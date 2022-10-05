@@ -5,20 +5,20 @@
 Share With Thy Neighbors:<br> Single-View Reconstruction by Cross-Instance Consistency
 <p></p>
 
-<a href="https://imagine.enpc.fr/~monniert/">Tom Monnier</a>&emsp;
+<a href="https://www.tmonnier.com">Tom Monnier</a>&emsp;
 <a href="https://techmatt.github.io/">Matthew Fisher</a>&emsp;
 <a href="https://people.eecs.berkeley.edu/~efros/">Alexei A. Efros</a>&emsp;
 <a href="https://imagine.enpc.fr/~aubrym/">Mathieu Aubry</a>
 
 <p></p>
 
-<a href="https://imagine.enpc.fr/~monniert/UNICORN/"><img 
+<a href="https://www.tmonnier.com/UNICORN/"><img 
 src="https://img.shields.io/badge/-Webpage-blue.svg?colorA=333&logo=html5" height=35em></a>
 <a href="https://arxiv.org/abs/2204.10310"><img 
 src="https://img.shields.io/badge/-Paper-blue.svg?colorA=333&logo=arxiv" height=35em></a>
-<a href="https://imagine.enpc.fr/~monniert/UNICORN/demo"><img 
+<a href="https://www.tmonnier.com/UNICORN/demo"><img 
 src="https://img.shields.io/badge/-Demo-blue.svg?colorA=333&logo=googlecolab" height=35em></a>
-<a href="https://imagine.enpc.fr/~monniert/UNICORN/ref.bib"><img 
+<a href="https://www.tmonnier.com/UNICORN/ref.bib"><img 
 src="https://img.shields.io/badge/-BibTeX-blue.svg?colorA=333&logo=latex" height=35em></a>
 <p></p>
 
@@ -28,12 +28,12 @@ src="https://img.shields.io/badge/-BibTeX-blue.svg?colorA=333&logo=latex" height
 </div>
 
 Official PyTorch implementation of [**Share With Thy Neighbors: Single-View Reconstruction by Cross-Instance Consistency**](https://arxiv.org/abs/2204.10310) (ECCV 2022).
-Check out our [**webpage**](https://imagine.enpc.fr/~monniert/UNICORN) for video results!
+Check out our [**webpage**](https://www.tmonnier.com/UNICORN/) for video results!
 
 This repository contains:
 
 - scripts to download and load both datasets and pretrained models
-- demo to reconstruct cars from raw images (script or [interactive notebook ![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://imagine.enpc.fr/~monniert/UNICORN/demo))
+- demo to reconstruct cars from raw images (script or [interactive notebook ![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://www.tmonnier.com/UNICORN/demo))
 - configs to train the models from scratch
 - evaluation pipelines to reproduce quantitative results
 - guidelines to train a model on a new dataset
@@ -102,7 +102,7 @@ This command will download one of the following datasets:
   [webpage](https://cvgl.stanford.edu/projects/pascal3d.html) (with ftp download link, 7.5Go) / [UCMR
   annotations](https://people.eecs.berkeley.edu/~shubham-goel/projects/ucmr/cachedir-others.tar.gz)
   (bbox + train/test split, thanks to the [UCMR team](https://github.com/shubham-goel/ucmr/) for hosting them) / 
-  [UNICORN annotations](https://imagine.enpc.fr/~monniert/UNICORN/data/unicorn_anno.zip)(3D shape ground-truth)
+  [UNICORN annotations](https://www.tmonnier.com/UNICORN/data/unicorn_anno.zip)(3D shape ground-truth)
 - `CompCars`: [paper](http://mmlab.ie.cuhk.edu.hk/datasets/comp_cars/CompCars.pdf) / 
   [webpage](http://mmlab.ie.cuhk.edu.hk/datasets/comp_cars/) / 
   [dataset](https://s3.eu-central-1.amazonaws.com/avg-projects/giraffe/data/comprehensive_cars.zip) 
@@ -186,7 +186,7 @@ cuda=gpu_id model=car_big.pkl input=demo ./scripts/reconstruct.sh
 where `gpu_id` is a target cuda device id, `car_big.pkl` corresponds to a pretrained model, `demo` is a folder containing the target images.
 Reconstruction results (.obj + gif) will be saved in a folder `demo_rec`.
 
-We also provide an [interactive demo ![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://imagine.enpc.fr/~monniert/UNICORN/demo)
+We also provide an [interactive demo ![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://www.tmonnier.com/UNICORN/demo)
 to reconstruct cars from single images.
 
 ### 2. Train models from scratch :runner:
@@ -290,9 +290,9 @@ If you like this project, check out related works from our group:
 - [Loiseau et al. - Representing Shape Collections with Alignment-Aware Linear Models (3DV
   2021)](https://romainloiseau.github.io/deep-linear-shapes/)
 - [Monnier et al. - Unsupervised Layered Image Decomposition into Object Prototypes (ICCV
-  2021)](https://imagine.enpc.fr/~monniert/DTI-Sprites/)
+  2021)](https://www.tmonnier.com/DTI-Sprites/)
 - [Monnier et al. - Deep Transformation Invariant Clustering (NeurIPS 
-  2020)](https://imagine.enpc.fr/~monniert/DTIClustering/)
+  2020)](https://www.tmonnier.com/DTIClustering/)
 - [Deprelle et al. - Learning elementary structures for 3D shape generation and matching 
   (NeurIPS 2019)](https://imagine.enpc.fr/~deprellt/atlasnet2/)
 - [Groueix et al. - AtlasNet: A Papier-Mache Approach to Learning 3D Surface Generation (CVPR 
