@@ -1,0 +1,27 @@
+# Configuration for Cog ⚙️
+# Reference: https://github.com/replicate/cog/blob/main/docs/yaml.md
+
+build:
+  # cuda: "11.0.3"
+  # set to true if your model requires a GPU
+  gpu: true
+
+  # a list of ubuntu apt packages to install
+  system_packages:
+    - "sox"
+    - "libsndfile1"
+    - "ffmpeg"
+
+  # python version in the form '3.8' or '3.8.12'
+  python_version: "3.9.12"
+
+  # a list of packages in the format <package-name>==<version>
+
+  python_requirements: requirements.txt
+  # commands run after the environment is setup
+  # run:
+    # - "echo env is ready!"
+    # - "echo another command if needed"
+
+# predict.py defines how predictions are run on your model
+predict: "predict.py:Predictor"
