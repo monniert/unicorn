@@ -1,0 +1,56 @@
+dataset:
+  name: XXX                           # TODO: put name of the dataset / data folder 
+  img_size: 64
+model:
+  name: unicorn
+  mesh:
+    init: ellipse
+    scale: 0.6
+    use_mean_txt: True
+    deform_fields:
+      powers: [2, 8, 32]
+      milestones: [XX1, XX2, XX3]     # TODO: put nb epochs for stages of 750k iter
+    texture_uv:
+      img_size: 64
+      powers: [2, 8, 32, 128]
+      milestones: [0, XX1, XX2, XX3]  # TODO: put nb epochs for stages of 750k iter
+  background:
+    powers: [4, 8, 32, 128]
+    milestones: [0, XX1, XX2, XX3]    # TODO: put nb epochs for stages of 750k iter
+  renderer:
+    cameras:
+      name: fov
+      fov: 30
+  rend_predictor:
+    alternate_optim: True
+    azim_range: [0, 360]
+    elev_range: [-10, 30]
+    roll_range: [-30, 30]
+    T_range: [0.3, 0.3, 0.3]
+    scale_range: [0.3, 0.3, 0.3]
+  milestones:
+    freeze_T_predictor: XXX           # TODO: put nb epochs for 10k iter
+    freeze_shape: XXX                 # TODO: put nb epochs for 20k iter
+    freeze_scale_predictor: XXX       # TODO: put nb epochs for 250k iter
+    mean_txt: XX3                     # TODO: put nb epochs equals to final stage
+  loss:
+    name: mse
+    rgb_weight: 1
+    perceptual_weight: 10
+    laplacian_weight: 0.01
+    normal_weight: 0.01
+    uniform_weight: 0.02
+    swap_weight: 1
+training:
+  batch_size: 32
+  n_workers: 4
+  optimizer:
+    name: adam
+    lr: 1.0e-4
+  n_epoches: XXX                     # TODO: put nb epochs for 3M iter
+  save_epoches: [XX1, XX2, XX3]      # TODO: put nb epochs to save after each stage
+  train_stat_interval: 2000
+  val_stat_interval: 4000
+  seed: 1234
+  visualizer_port:
+  resume:

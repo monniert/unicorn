@@ -276,7 +276,7 @@ If you want to learn a model for a custom object category, here are the key thin
 to do:
 
 1. put your images in a `custom_name` folder inside the `datasets` folder
-2. write a config `custom.yml` with `custom_name` as `dataset.name` and move it to the `configs` folder: as a rule of thumb, put the number of epochs corresponding to 750k iterations for each stage
+2. edit the config file `custom.yml` (or `custom_big.yml`) in the configs folder: this includes changing the dataset name to `custom_name` and setting all training milestones
 3. launch training with:
 
 ```
